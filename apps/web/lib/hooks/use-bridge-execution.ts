@@ -95,9 +95,11 @@ export function useBridgeExecution() {
   const { mina, isReady } = useMina();
   const { data: walletClient } = useWalletClient();
   const [isLocalExecuting, setIsLocalExecuting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const {
     isExecuting,
+    executionId,
     status,
     steps,
     progress,
@@ -249,11 +251,21 @@ export function useBridgeExecution() {
    * Retry a failed execution
    */
   const retry = useCallback(
-    async (executionId: string): Promise<ExecutionResult> => {
+    async (retryExecutionId?: string): Promise<ExecutionResult> => {
+      const targetExecutionId = retryExecutionId || executionId;
+
+      if (!targetExecutionId) {
+        return {
+          success: false,
+          executionId: '',
+          error: new Error('No execution to retry'),
+        };
+      }
+
       if (!mina || !isReady) {
         return {
           success: false,
-          executionId,
+          executionId: targetExecutionId,
           error: new Error('SDK not initialized'),
         };
       }
@@ -261,15 +273,17 @@ export function useBridgeExecution() {
       if (!walletClient) {
         return {
           success: false,
-          executionId,
+          executionId: targetExecutionId,
           error: new Error('Wallet not connected'),
         };
       }
 
+      setIsRetrying(true);
+
       try {
         const signer = createWagmiSigner(walletClient as WagmiWalletClient);
 
-        const result = await mina.retry(executionId, {
+        const result = await mina.retry(targetExecutionId, {
           signer,
           onStepChange: updateStep,
           onStatusChange: updateStatus,
@@ -282,12 +296,34 @@ export function useBridgeExecution() {
             receivedAmount: result.receivedAmount,
           });
 
+          setIsRetrying(false);
+
           return {
             success: true,
             executionId: result.executionId,
             txHash: result.txHash,
           };
+        } else if (result.status === 'failed') {
+          const errorObj = result.error || new Error('Retry failed');
+          setFailed({
+            message: errorObj.message,
+            code: (errorObj as any).code,
+            recoverable: (errorObj as any).recoverable,
+            recoveryAction: (errorObj as any).recoveryAction,
+            userMessage: (errorObj as any).userMessage,
+          });
+
+          setIsRetrying(false);
+
+          return {
+            success: false,
+            executionId: result.executionId,
+            error: errorObj,
+          };
         }
+
+        // Status is executing or pending - treat as in progress
+        setIsRetrying(false);
 
         return {
           success: false,
@@ -305,20 +341,24 @@ export function useBridgeExecution() {
           userMessage: (errorObj as any).userMessage ?? errorObj.message,
         });
 
+        setIsRetrying(false);
+
         return {
           success: false,
-          executionId,
+          executionId: targetExecutionId,
           error: errorObj,
         };
       }
     },
-    [mina, isReady, walletClient, updateStep, updateStatus, setCompleted, setFailed]
+    [mina, isReady, walletClient, executionId, updateStep, updateStatus, setCompleted, setFailed]
   );
 
   return {
     execute,
     retry,
     isExecuting: isExecuting || isLocalExecuting,
+    isRetrying,
+    executionId,
     status,
     steps,
     progress,

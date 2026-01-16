@@ -86,7 +86,7 @@ export function BridgeForm() {
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
   const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
   const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
-  const { execute, isExecuting, reset: resetExecution } = useBridgeExecution();
+  const { execute, retry, isExecuting, isRetrying, reset: resetExecution } = useBridgeExecution();
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
@@ -197,6 +197,23 @@ export function BridgeForm() {
     resetExecution();
     setAmount('');
   }, [resetExecution, setAmount]);
+
+  // Handle start over (reset form completely)
+  const handleStartOver = useCallback(() => {
+    resetExecution();
+    setAmount('');
+  }, [resetExecution, setAmount]);
+
+  // Handle retry
+  const handleRetry = useCallback(async () => {
+    console.log('[BridgeForm] Retrying execution');
+    const result = await retry();
+    if (result.success) {
+      console.log('[BridgeForm] Retry completed successfully:', result);
+    } else {
+      console.error('[BridgeForm] Retry failed:', result.error);
+    }
+  }, [retry]);
 
   // Get tooltip message for disabled bridge button
   const getTooltipMessage = useCallback((): string => {
@@ -389,7 +406,12 @@ export function BridgeForm() {
       </CardContent>
 
       {/* Execution Modal */}
-      <ExecutionModal onBridgeAgain={handleBridgeAgain} />
+      <ExecutionModal
+        onBridgeAgain={handleBridgeAgain}
+        onStartOver={handleStartOver}
+        onRetry={handleRetry}
+        isRetrying={isRetrying}
+      />
     </Card>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,12 @@ function getExplorerUrl(chainId: number | null, txHash: string): string | null {
 export interface ExecutionModalProps {
   /** Callback when user clicks "Bridge Again" */
   onBridgeAgain?: () => void;
+  /** Callback when user clicks "Start Over" to reset form and get new quote */
+  onStartOver?: () => void;
+  /** Callback to retry failed execution */
+  onRetry?: () => Promise<void>;
+  /** Whether a retry is currently in progress */
+  isRetrying?: boolean;
 }
 
 /**
@@ -153,13 +159,109 @@ function SuccessContent({
 }
 
 /**
+ * Error Details Expandable Component
+ */
+function ErrorDetails({
+  error,
+  errorDetails,
+}: {
+  error: string | null;
+  errorDetails: {
+    code?: string;
+    recoverable?: boolean;
+    recoveryAction?: string;
+    userMessage?: string;
+  } | null;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyDetails = useCallback(async () => {
+    const details = JSON.stringify({
+      code: errorDetails?.code,
+      message: error,
+      recoverable: errorDetails?.recoverable,
+      recoveryAction: errorDetails?.recoveryAction,
+      userMessage: errorDetails?.userMessage,
+      timestamp: new Date().toISOString(),
+    }, null, 2);
+    try {
+      await navigator.clipboard.writeText(details);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('[ErrorDetails] Failed to copy to clipboard:', err);
+    }
+  }, [error, errorDetails]);
+
+  return (
+    <div className="text-left">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-caption text-text-muted hover:text-text-primary transition-colors"
+      >
+        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        Technical Details
+      </button>
+
+      {expanded && (
+        <div className="mt-2 p-3 bg-bg-elevated rounded-lg border border-border-subtle">
+          <pre className="text-xs font-mono text-text-muted overflow-x-auto whitespace-pre-wrap break-all">
+            {JSON.stringify({
+              code: errorDetails?.code,
+              message: error,
+              recoverable: errorDetails?.recoverable,
+              recoveryAction: errorDetails?.recoveryAction,
+            }, null, 2)}
+          </pre>
+          <button
+            onClick={copyDetails}
+            className="mt-2 flex items-center gap-1 text-caption text-accent-primary hover:text-accent-hover transition-colors"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3 h-3" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3" />
+                Copy Error Details
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Recovery Guidance Component
+ */
+function RecoveryGuidance({ recoveryAction }: { recoveryAction?: string }) {
+  if (!recoveryAction) return null;
+
+  const guidance = getRecoverySuggestion(recoveryAction);
+
+  return (
+    <div className="p-3 bg-bg-elevated rounded-lg border border-border-subtle text-left">
+      <p className="text-small font-medium text-text-primary mb-1">What you can do:</p>
+      <p className="text-small text-text-muted">{guidance}</p>
+    </div>
+  );
+}
+
+/**
  * Failed state content
  */
 function FailedContent({
   error,
   errorDetails,
   onRetry,
+  onStartOver,
   onClose,
+  isRetrying,
 }: {
   error: string | null;
   errorDetails: {
@@ -169,14 +271,17 @@ function FailedContent({
     userMessage?: string;
   } | null;
   onRetry?: () => void;
+  onStartOver?: () => void;
   onClose: () => void;
+  isRetrying?: boolean;
 }) {
-  const canRetry = errorDetails?.recoverable !== false;
+  // Explicitly check for true, not just "not false"
+  const canRetry = errorDetails?.recoverable === true;
   const userMessage = errorDetails?.userMessage || error || 'An error occurred during the bridge transaction.';
 
   return (
     <>
-      <DialogBody className="text-center">
+      <DialogBody>
         {/* Error icon */}
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center">
@@ -185,43 +290,80 @@ function FailedContent({
         </div>
 
         {/* Error message */}
-        <h3 className="text-h3 text-text-primary mb-2">Transaction Failed</h3>
-        <p className="text-body text-text-muted mb-4">
-          {userMessage}
-        </p>
+        <div className="text-center mb-6">
+          <h3 className="text-h3 text-text-primary mb-2">Transaction Failed</h3>
+          <p className="text-body text-text-muted">
+            {userMessage}
+          </p>
+        </div>
 
-        {/* Error code */}
+        {/* Error code badge */}
         {errorDetails?.code && (
-          <div className="bg-bg-elevated rounded-card p-3 mb-6">
-            <p className="text-caption text-text-muted font-mono">
-              Error Code: {errorDetails.code}
-            </p>
+          <div className="flex justify-center mb-4">
+            <span className="px-3 py-1 bg-error/10 text-error text-caption font-mono rounded-full">
+              {errorDetails.code}
+            </span>
           </div>
         )}
 
-        {/* Recovery suggestion */}
-        {errorDetails?.recoveryAction && (
-          <p className="text-small text-text-muted">
-            Suggestion: {getRecoverySuggestion(errorDetails.recoveryAction)}
-          </p>
+        {/* Recovery guidance for non-recoverable errors */}
+        {!canRetry && (
+          <div className="mb-4">
+            <RecoveryGuidance recoveryAction={errorDetails?.recoveryAction} />
+          </div>
         )}
+
+        {/* Expandable technical details */}
+        <div className="mb-4">
+          <ErrorDetails error={error} errorDetails={errorDetails} />
+        </div>
       </DialogBody>
 
       <DialogFooter className="flex-col gap-3">
+        {/* Retry button for recoverable errors */}
         {canRetry && onRetry && (
           <Button
             className="w-full"
             size="lg"
             onClick={onRetry}
+            disabled={isRetrying}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry Transaction
+            {isRetrying ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Retrying...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry Transaction
+              </>
+            )}
           </Button>
         )}
+
+        {/* Start Over button */}
+        {onStartOver && (
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              onClose();
+              onStartOver();
+            }}
+            disabled={isRetrying}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Start Over
+          </Button>
+        )}
+
+        {/* Close/Cancel button */}
         <Button
-          variant={canRetry ? 'secondary' : 'primary'}
+          variant="ghost"
           className="w-full"
           onClick={onClose}
+          disabled={isRetrying}
         >
           {canRetry ? 'Cancel' : 'Close'}
         </Button>
@@ -309,10 +451,20 @@ function ExecutingContent({
  *
  * @example
  * ```tsx
- * <ExecutionModal onBridgeAgain={() => reset()} />
+ * <ExecutionModal
+ *   onBridgeAgain={() => reset()}
+ *   onStartOver={() => { reset(); setAmount(''); }}
+ *   onRetry={() => retry(executionId)}
+ *   isRetrying={isRetrying}
+ * />
  * ```
  */
-export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
+export function ExecutionModal({
+  onBridgeAgain,
+  onStartOver,
+  onRetry,
+  isRetrying = false,
+}: ExecutionModalProps) {
   const {
     isModalOpen,
     status,
@@ -330,24 +482,36 @@ export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
     reset,
   } = useTransactionStore();
 
-  // Handle close - only allow if not executing
-  const handleClose = () => {
-    if (status !== 'executing' && status !== 'pending') {
+  // Handle close - only allow if not executing or retrying
+  const handleClose = useCallback(() => {
+    if (status !== 'executing' && status !== 'pending' && !isRetrying) {
       closeModal();
       if (status === 'completed') {
         reset();
       }
     }
-  };
+  }, [status, isRetrying, closeModal, reset]);
 
-  // Handle retry (for Story 4.5)
-  const handleRetry = () => {
-    // This will be implemented in Story 4.5
-    console.log('Retry requested - will be implemented in Story 4.5');
-  };
+  // Handle retry
+  const handleRetry = useCallback(async () => {
+    if (onRetry) {
+      await onRetry();
+    }
+  }, [onRetry]);
+
+  // Handle start over
+  const handleStartOver = useCallback(() => {
+    reset();
+    if (onStartOver) {
+      onStartOver();
+    }
+  }, [reset, onStartOver]);
 
   // Get modal title based on status
   const getTitle = () => {
+    if (isRetrying) {
+      return 'Retrying Transaction...';
+    }
     switch (status) {
       case 'pending':
         return 'Preparing Transaction...';
@@ -363,7 +527,7 @@ export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
   };
 
   // Determine if modal can be closed
-  const canClose = status !== 'executing' && status !== 'pending';
+  const canClose = status !== 'executing' && status !== 'pending' && !isRetrying;
 
   return (
     <Dialog open={isModalOpen} onOpenChange={canClose ? closeModal : () => {}}>
@@ -377,7 +541,7 @@ export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
         </DialogHeader>
 
         {/* Render content based on status */}
-        {(status === 'executing' || status === 'pending') && (
+        {(status === 'executing' || status === 'pending' || isRetrying) && (
           <ExecutingContent
             steps={steps}
             currentStepIndex={currentStepIndex}
@@ -385,7 +549,7 @@ export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
           />
         )}
 
-        {status === 'completed' && (
+        {status === 'completed' && !isRetrying && (
           <SuccessContent
             txHash={txHash}
             receivingTxHash={receivingTxHash}
@@ -397,12 +561,14 @@ export function ExecutionModal({ onBridgeAgain }: ExecutionModalProps) {
           />
         )}
 
-        {status === 'failed' && (
+        {status === 'failed' && !isRetrying && (
           <FailedContent
             error={error}
             errorDetails={errorDetails}
             onRetry={handleRetry}
+            onStartOver={handleStartOver}
             onClose={handleClose}
+            isRetrying={isRetrying}
           />
         )}
       </DialogContent>
