@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { AlertCircle, ArrowDown, RefreshCw, Info } from 'lucide-react';
+import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2 } from 'lucide-react';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useShallow } from 'zustand/react/shallow';
@@ -9,11 +9,12 @@ import { ChainSelector } from './chain-selector';
 import { QuoteDisplay } from './quote-display';
 import { BalanceWarning } from './balance-warning';
 import { AutoDepositToggle } from './auto-deposit-toggle';
+import { ExecutionModal } from './execution-modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
-import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation } from '@/lib/hooks';
+import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 import type { Chain } from '@siphoyawe/mina-sdk';
@@ -85,6 +86,7 @@ export function BridgeForm() {
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
   const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
   const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
+  const { execute, isExecuting, reset: resetExecution } = useBridgeExecution();
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
@@ -171,6 +173,31 @@ export function BridgeForm() {
     // In a full implementation, this would trigger a quote refetch with autoDeposit param
   }, []);
 
+  // Handle bridge execution
+  const handleBridge = useCallback(async () => {
+    if (!quote) {
+      console.error('[BridgeForm] No quote available');
+      return;
+    }
+
+    console.log('[BridgeForm] Starting bridge execution');
+    const result = await execute(quote);
+
+    if (result.success) {
+      console.log('[BridgeForm] Bridge completed successfully:', result);
+      // Reset form amount after successful bridge
+      setAmount('');
+    } else {
+      console.error('[BridgeForm] Bridge failed:', result.error);
+    }
+  }, [quote, execute, setAmount]);
+
+  // Handle bridge again (reset and refetch quote)
+  const handleBridgeAgain = useCallback(() => {
+    resetExecution();
+    setAmount('');
+  }, [resetExecution, setAmount]);
+
   // Get tooltip message for disabled bridge button
   const getTooltipMessage = useCallback((): string => {
     if (!isConnected) return 'Connect your wallet to bridge';
@@ -178,12 +205,13 @@ export function BridgeForm() {
     if (!sourceChain) return 'Select a source chain';
     if (!amount) return 'Enter an amount to bridge';
     if (quote && !isBalanceValid) return 'Insufficient balance for this transaction';
+    if (isExecuting) return 'Transaction in progress';
     return '';
-  }, [isConnected, needsSwitch, sourceChain, amount, quote, isBalanceValid]);
+  }, [isConnected, needsSwitch, sourceChain, amount, quote, isBalanceValid, isExecuting]);
 
   // Determine if bridge button should be disabled
   const hasBalanceIssue = Boolean(quote && !isBalanceValid);
-  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending || hasBalanceIssue;
+  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
 
   return (
     <Card className="max-w-md mx-auto">
@@ -309,16 +337,24 @@ export function BridgeForm() {
 
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
-          show={Boolean(isBridgeDisabled && isConnected)}
+          show={Boolean(isBridgeDisabled && isConnected && !isExecuting)}
           message={getTooltipMessage()}
         >
           <Button
             className="w-full hover:shadow-glow"
             size="lg"
             disabled={isBridgeDisabled}
+            onClick={handleBridge}
           >
             {!isConnected
               ? 'Connect Wallet'
+              : isExecuting
+              ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Bridging...
+                </>
+              )
               : isSwitchPending
               ? 'Switching Network...'
               : needsSwitch
@@ -327,6 +363,10 @@ export function BridgeForm() {
               ? 'Select Chain'
               : !amount
               ? 'Enter Amount'
+              : isQuoteLoading
+              ? 'Getting Quote...'
+              : !quote
+              ? 'Get Quote'
               : hasBalanceIssue
               ? 'Insufficient Balance'
               : 'Bridge Now'}
@@ -347,6 +387,9 @@ export function BridgeForm() {
           </p>
         )}
       </CardContent>
+
+      {/* Execution Modal */}
+      <ExecutionModal onBridgeAgain={handleBridgeAgain} />
     </Card>
   );
 }
