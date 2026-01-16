@@ -7,11 +7,13 @@ import { useChainId } from 'wagmi';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
 import { QuoteDisplay } from './quote-display';
+import { BalanceWarning } from './balance-warning';
+import { AutoDepositToggle } from './auto-deposit-toggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
-import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote } from '@/lib/hooks';
+import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 import type { Chain } from '@siphoyawe/mina-sdk';
@@ -43,6 +45,8 @@ function BridgeButtonTooltip({ show, children, message }: { show: boolean; child
       className="relative group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
     >
       {children}
       {show && isHovered && (
@@ -80,9 +84,12 @@ export function BridgeForm() {
   const { refetchBalances } = useWalletBalance();
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
   const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
+  const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
+  // State for auto-deposit toggle
+  const [autoDepositEnabled, setAutoDepositEnabled] = useState(true);
 
   // Issue 2 fix: Use useShallow for state to batch subscriptions
   // Actions are stable references and can be selected directly - no need for getState()
@@ -158,17 +165,25 @@ export function BridgeForm() {
   // Determine if we should show the network switch prompt
   const showNetworkPrompt = targetChain && !isDismissed;
 
+  // Handle auto-deposit toggle
+  const handleAutoDepositToggle = useCallback((enabled: boolean) => {
+    setAutoDepositEnabled(enabled);
+    // In a full implementation, this would trigger a quote refetch with autoDeposit param
+  }, []);
+
   // Get tooltip message for disabled bridge button
-  const getTooltipMessage = (): string => {
+  const getTooltipMessage = useCallback((): string => {
     if (!isConnected) return 'Connect your wallet to bridge';
     if (needsSwitch) return 'Switch to the correct network first';
     if (!sourceChain) return 'Select a source chain';
     if (!amount) return 'Enter an amount to bridge';
+    if (quote && !isBalanceValid) return 'Insufficient balance for this transaction';
     return '';
-  };
+  }, [isConnected, needsSwitch, sourceChain, amount, quote, isBalanceValid]);
 
   // Determine if bridge button should be disabled
-  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending;
+  const hasBalanceIssue = quote && !isBalanceValid;
+  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending || hasBalanceIssue;
 
   return (
     <Card className="max-w-md mx-auto">
@@ -278,6 +293,20 @@ export function BridgeForm() {
           error={quoteError}
         />
 
+        {/* Balance Warnings */}
+        {quote && warnings.length > 0 && (
+          <BalanceWarning warnings={warnings} />
+        )}
+
+        {/* Auto-Deposit Toggle */}
+        {quote && (
+          <AutoDepositToggle
+            enabled={autoDepositEnabled}
+            onToggle={handleAutoDepositToggle}
+            includesAutoDeposit={quote.includesAutoDeposit}
+          />
+        )}
+
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
           show={isBridgeDisabled && isConnected}
@@ -298,6 +327,8 @@ export function BridgeForm() {
               ? 'Select Chain'
               : !amount
               ? 'Enter Amount'
+              : hasBalanceIssue
+              ? 'Insufficient Balance'
               : 'Bridge Now'}
           </Button>
         </BridgeButtonTooltip>
