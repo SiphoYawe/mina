@@ -3,15 +3,10 @@
 </p>
 
 <p align="center">
-  <strong>From anywhere to Hyperliquid, in one click.</strong>
-</p>
-
-<p align="center">
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#sdk">SDK</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#project-structure">Structure</a>
+  <a href="#tech-stack">Tech Stack</a>
 </p>
 
 ---
@@ -52,12 +47,6 @@ Mina provides:
 - **Route Preference** — Choose between Recommended, Fastest, or Cheapest routes
 - **Price Impact Warnings** — Live calculation with warnings for high impact trades
 - **Insufficient Balance Detection** — Proactive warnings before attempting a bridge
-
-### Polish
-
-- **Confetti Celebration** — Delightful animation on successful bridge completion
-- **Share Receipt** — Generate shareable image/link of completed bridges
-- **Mobile-First Design** — Responsive design optimized for all devices
 
 ## Quick Start
 
@@ -175,41 +164,6 @@ function BridgeForm() {
 | **State** | Zustand + TanStack Query |
 | **Animations** | Framer Motion |
 | **SDK Build** | tsup |
-
-## Project Structure
-
-```
-mina/
-├── apps/
-│   └── web/                 # Next.js web application
-│       ├── app/             # App router pages
-│       ├── components/      # React components
-│       └── lib/             # Utilities and hooks
-├── packages/
-│   └── sdk/                 # @mina-bridge/sdk package
-│       └── src/
-│           ├── client.ts    # Main Mina client
-│           ├── types.ts     # TypeScript definitions
-│           └── constants.ts # Configuration constants
-├── package.json
-├── pnpm-workspace.yaml
-├── turbo.json
-└── tsconfig.json
-```
-
-## Design System
-
-Mina uses a "Dark Luxe" design language:
-
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `bg-base` | #09090B | Page background |
-| `bg-surface` | #111113 | Cards, containers |
-| `accent-primary` | #7DD3FC | Primary actions |
-| `text-primary` | #FAFAFA | Headings |
-| `success` | #0ECC83 | Success states |
-| `warning` | #FBBF24 | Warnings |
-| `error` | #F87171 | Errors |
 
 ## Hackathon Context
 
