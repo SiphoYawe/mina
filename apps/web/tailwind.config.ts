@@ -61,11 +61,26 @@ const config: Config = {
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'spin': 'spin 1s linear infinite',
+        'fade-in': 'fade-in 200ms ease-out',
+        'slide-down': 'slide-down 200ms ease-out',
       },
       keyframes: {
         'pulse-glow': {
           '0%, 100%': { boxShadow: '0 0 20px rgba(125, 211, 252, 0.15)' },
           '50%': { boxShadow: '0 0 30px rgba(125, 211, 252, 0.25)' },
+        },
+        'spin': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'slide-down': {
+          from: { opacity: '0', transform: 'translateY(-8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

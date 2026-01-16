@@ -29,7 +29,7 @@ Bridging assets into Hyperliquid is fragmented and frustrating:
 Mina provides:
 
 - **Mina Web App** — A polished, consumer-facing bridge interface with premium "Dark Luxe" design
-- **Mina SDK** — A developer toolkit (`@mina-bridge/sdk`) for integrating Hyperliquid onboarding into any application
+- **Mina SDK** — A developer toolkit (`@siphoyawe/mina-sdk`) for integrating Hyperliquid onboarding into any application
 
 ## Features
 
@@ -73,20 +73,22 @@ The web app will be available at `http://localhost:3000`.
 
 ## SDK
 
+[![npm](https://img.shields.io/npm/v/@siphoyawe/mina-sdk)](https://www.npmjs.com/package/@siphoyawe/mina-sdk)
+
 The Mina SDK provides a clean API for integrating Hyperliquid onboarding into any application.
 
 ### Installation
 
 ```bash
-npm install @mina-bridge/sdk
+npm install @siphoyawe/mina-sdk
 # or
-pnpm add @mina-bridge/sdk
+pnpm add @siphoyawe/mina-sdk
 ```
 
 ### Basic Usage
 
 ```typescript
-import { Mina } from '@mina-bridge/sdk';
+import { Mina } from '@siphoyawe/mina-sdk';
 
 // Initialize the client
 const mina = new Mina({
@@ -115,7 +117,7 @@ const result = await mina.execute(quote, {
 ### React Hooks
 
 ```tsx
-import { MinaProvider, useMina, useQuote } from '@mina-bridge/sdk/react';
+import { MinaProvider, useMina, useQuote } from '@siphoyawe/mina-sdk/react';
 
 function App() {
   return (

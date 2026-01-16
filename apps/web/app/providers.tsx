@@ -1,7 +1,9 @@
 'use client';
 
 import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
-import { Mina, type MinaConfig } from '@mina-bridge/sdk';
+import { Mina, type MinaConfig } from '@siphoyawe/mina-sdk';
+import { WalletProvider } from './providers/wallet-provider';
+import type { State } from 'wagmi';
 
 interface MinaContextValue {
   mina: Mina | null;
@@ -17,24 +19,28 @@ const defaultConfig: MinaConfig = {
   defaultSlippage: 0.005, // 0.5%
 };
 
-export function MinaProvider({
-  config = defaultConfig,
-  children,
-}: {
+interface MinaProviderInnerProps {
   config?: MinaConfig;
   children: ReactNode;
-}) {
+}
+
+function MinaProviderInner({
+  config = defaultConfig,
+  children,
+}: MinaProviderInnerProps) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Issue 6 Fix: Use JSON.stringify for stable dependency comparison
+  const configString = JSON.stringify(config);
   const mina = useMemo(() => {
     try {
-      return new Mina(config);
+      return new Mina(JSON.parse(configString) as MinaConfig);
     } catch (e) {
       setError(e as Error);
       return null;
     }
-  }, [config]);
+  }, [configString]);
 
   useEffect(() => {
     if (mina) {
@@ -46,6 +52,26 @@ export function MinaProvider({
     <MinaContext.Provider value={{ mina, isReady, error }}>
       {children}
     </MinaContext.Provider>
+  );
+}
+
+interface MinaProviderProps {
+  config?: MinaConfig;
+  initialWagmiState?: State;
+  children: ReactNode;
+}
+
+export function MinaProvider({
+  config = defaultConfig,
+  initialWagmiState,
+  children,
+}: MinaProviderProps) {
+  return (
+    <WalletProvider initialState={initialWagmiState}>
+      <MinaProviderInner config={config}>
+        {children}
+      </MinaProviderInner>
+    </WalletProvider>
   );
 }
 

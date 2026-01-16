@@ -1,7 +1,42 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SdkStatus } from '@/components/sdk-status';
+import { ConnectButton } from '@/components/wallet/connect-button';
+import { BridgeForm } from '@/components/bridge';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+/**
+ * Issue 7 fix: Fallback UI for BridgeForm error boundary
+ * Uses FallbackProps type from react-error-boundary for correct typing
+ */
+function BridgeFormErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+  return (
+    <Card className="max-w-md mx-auto">
+      <CardContent className="py-8">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <AlertCircle className="w-12 h-12 text-error" />
+          <div>
+            <h3 className="text-h3 text-text-primary mb-2">Something went wrong</h3>
+            <p className="text-body text-text-muted mb-4">
+              The bridge form encountered an error. Please try again.
+            </p>
+            <p className="text-caption text-text-muted font-mono bg-bg-elevated p-2 rounded mb-4">
+              {errorMessage}
+            </p>
+          </div>
+          <Button onClick={resetErrorBoundary} variant="secondary">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Home() {
   return (
@@ -15,9 +50,7 @@ export default function Home() {
             </div>
             <span className="text-h3 text-gradient">Mina</span>
           </div>
-          <Button variant="secondary" size="sm">
-            Connect Wallet
-          </Button>
+          <ConnectButton />
         </div>
       </header>
 
@@ -31,33 +64,10 @@ export default function Home() {
           One click, zero hassle.
         </p>
 
-        {/* Bridge Card */}
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Bridge Assets</CardTitle>
-            <CardDescription>
-              Select a token and amount to bridge
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-small text-text-secondary">From</label>
-              <Input placeholder="0.00" type="number" />
-            </div>
-            <div className="flex justify-center">
-              <div className="w-8 h-8 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center">
-                <span className="text-text-muted">↓</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-small text-text-secondary">To (HyperEVM)</label>
-              <Input placeholder="0.00" type="number" disabled />
-            </div>
-            <Button className="w-full" size="lg">
-              Bridge Now
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Issue 7 fix: Bridge Form wrapped with Error Boundary */}
+        <ErrorBoundary FallbackComponent={BridgeFormErrorFallback}>
+          <BridgeForm />
+        </ErrorBoundary>
 
         {/* SDK Status */}
         <SdkStatus />

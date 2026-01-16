@@ -1,7 +1,7 @@
 'use client';
 
 import { useMina } from '@/app/providers';
-import { SDK_VERSION, HYPEREVM_CHAIN_ID } from '@mina-bridge/sdk';
+import { SDK_VERSION, HYPEREVM_CHAIN_ID } from '@siphoyawe/mina-sdk';
 
 export function SdkStatus() {
   const { isReady, error } = useMina();
