@@ -59,6 +59,11 @@ export interface ExecutionModalProps {
 }
 
 /**
+ * Hyperliquid trading app URL
+ */
+const HYPERLIQUID_TRADING_URL = 'https://app.hyperliquid.xyz/trade';
+
+/**
  * Success state content
  */
 function SuccessContent({
@@ -67,6 +72,9 @@ function SuccessContent({
   receivedAmount,
   fromChainId,
   toChainId,
+  autoDepositCompleted,
+  depositTxHash,
+  finalTradingBalance,
   onBridgeAgain,
   onClose,
 }: {
@@ -75,11 +83,15 @@ function SuccessContent({
   receivedAmount: string | null;
   fromChainId: number | null;
   toChainId: number | null;
+  autoDepositCompleted: boolean;
+  depositTxHash: string | null;
+  finalTradingBalance: string | null;
   onBridgeAgain?: () => void;
   onClose: () => void;
 }) {
   const sourceExplorerUrl = txHash && fromChainId ? getExplorerUrl(fromChainId, txHash) : null;
   const destExplorerUrl = receivingTxHash && toChainId ? getExplorerUrl(toChainId, receivingTxHash) : null;
+  const depositExplorerUrl = depositTxHash ? getExplorerUrl(999, depositTxHash) : null;
 
   return (
     <>
@@ -91,24 +103,51 @@ function SuccessContent({
           </div>
         </div>
 
-        {/* Success message */}
-        <h3 className="text-h3 text-text-primary mb-2">Bridge Complete!</h3>
-        <p className="text-body text-text-muted mb-6">
-          Your assets have been successfully bridged to Hyperliquid.
-        </p>
-
-        {/* Amount received */}
-        {receivedAmount && (
-          <div className="bg-bg-elevated rounded-card p-4 mb-6">
-            <p className="text-caption text-text-muted mb-1">Amount Received</p>
-            <p className="text-h2 text-text-primary font-mono">
-              {receivedAmount} <span className="text-body text-text-muted">USDC</span>
+        {/* Success message - different for auto-deposit */}
+        {autoDepositCompleted ? (
+          <>
+            <h3 className="text-h3 text-text-primary mb-2">Bridge & Deposit Complete!</h3>
+            <p className="text-body text-text-muted mb-6">
+              Your assets have been bridged and deposited to your Hyperliquid trading account.
             </p>
-          </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-h3 text-text-primary mb-2">Bridge Complete!</h3>
+            <p className="text-body text-text-muted mb-6">
+              Your assets have been successfully bridged to HyperEVM.
+            </p>
+          </>
         )}
 
+        {/* Amount and Balance Summary */}
+        <div className="space-y-3 mb-6">
+          {/* Amount received */}
+          {receivedAmount && (
+            <div className="bg-bg-elevated rounded-card p-4">
+              <p className="text-caption text-text-muted mb-1">
+                {autoDepositCompleted ? 'Amount Deposited' : 'Amount Received'}
+              </p>
+              <p className="text-h2 text-text-primary font-mono">
+                {receivedAmount} <span className="text-body text-text-muted">USDC</span>
+              </p>
+            </div>
+          )}
+
+          {/* Final trading balance - only show if auto-deposit completed */}
+          {autoDepositCompleted && finalTradingBalance && (
+            <div className="bg-bg-elevated rounded-card p-4 border border-success/20">
+              <p className="text-caption text-text-muted mb-1">Trading Account Balance</p>
+              <p className="text-h3 text-success font-mono">
+                {finalTradingBalance} <span className="text-body text-text-muted">USDC</span>
+              </p>
+              <p className="text-caption text-text-muted mt-1">Ready to trade on Hyperliquid</p>
+            </div>
+          )}
+        </div>
+
         {/* Explorer links */}
-        <div className="space-y-3">
+        <div className="space-y-3 mb-2">
           {sourceExplorerUrl && (
             <a
               href={sourceExplorerUrl}
@@ -120,7 +159,7 @@ function SuccessContent({
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
-          {destExplorerUrl && (
+          {destExplorerUrl && !autoDepositCompleted && (
             <a
               href={destExplorerUrl}
               target="_blank"
@@ -131,21 +170,63 @@ function SuccessContent({
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
+          {depositExplorerUrl && autoDepositCompleted && (
+            <a
+              href={depositExplorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 p-3 rounded-lg bg-bg-elevated hover:bg-bg-surface transition-colors text-body text-text-primary"
+            >
+              <span>View Deposit Transaction</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
         </div>
       </DialogBody>
 
       <DialogFooter className="flex-col gap-3">
-        <Button
-          className="w-full"
-          size="lg"
-          onClick={() => {
-            onClose();
-            onBridgeAgain?.();
-          }}
-        >
-          <ArrowRight className="w-4 h-4 mr-2" />
-          Bridge Again
-        </Button>
+        {/* Primary CTA: Start Trading (if auto-deposit) or Bridge Again */}
+        {autoDepositCompleted ? (
+          <a
+            href={HYPERLIQUID_TRADING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full"
+          >
+            <Button className="w-full hover:shadow-glow" size="lg">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Start Trading on Hyperliquid
+            </Button>
+          </a>
+        ) : (
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => {
+              onClose();
+              onBridgeAgain?.();
+            }}
+          >
+            <ArrowRight className="w-4 h-4 mr-2" />
+            Bridge Again
+          </Button>
+        )}
+
+        {/* Secondary: Bridge Again (if auto-deposit completed) */}
+        {autoDepositCompleted && (
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              onClose();
+              onBridgeAgain?.();
+            }}
+          >
+            <ArrowRight className="w-4 h-4 mr-2" />
+            Bridge Again
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           className="w-full"
@@ -239,15 +320,34 @@ function ErrorDetails({
 /**
  * Recovery Guidance Component
  */
-function RecoveryGuidance({ recoveryAction }: { recoveryAction?: string }) {
-  if (!recoveryAction) return null;
+function RecoveryGuidance({ recoveryAction, isDepositError }: { recoveryAction?: string; isDepositError?: boolean }) {
+  if (!recoveryAction && !isDepositError) return null;
 
-  const guidance = getRecoverySuggestion(recoveryAction);
+  const guidance = getRecoverySuggestion(recoveryAction || '');
 
   return (
     <div className="p-3 bg-bg-elevated rounded-lg border border-border-subtle text-left">
+      {isDepositError && (
+        <div className="flex items-center gap-2 mb-3 p-2 rounded bg-success/10 border border-success/20">
+          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+          <p className="text-small text-success font-medium">
+            Your USDC is safe on HyperEVM
+          </p>
+        </div>
+      )}
       <p className="text-small font-medium text-text-primary mb-1">What you can do:</p>
       <p className="text-small text-text-muted">{guidance}</p>
+      {isDepositError && (
+        <a
+          href="https://app.hyperliquid.xyz/portfolio"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 mt-2 text-small text-accent-primary hover:text-accent-hover transition-colors"
+        >
+          <span>Deposit manually on Hyperliquid</span>
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
     </div>
   );
 }
@@ -277,6 +377,7 @@ function FailedContent({
 }) {
   // Explicitly check for true, not just "not false"
   const canRetry = errorDetails?.recoverable === true;
+  const isDepositError = errorDetails?.code === 'DEPOSIT_FAILED';
   const userMessage = errorDetails?.userMessage || error || 'An error occurred during the bridge transaction.';
 
   return (
@@ -306,10 +407,13 @@ function FailedContent({
           </div>
         )}
 
-        {/* Recovery guidance for non-recoverable errors */}
-        {!canRetry && (
+        {/* Recovery guidance for non-recoverable errors or deposit errors */}
+        {(!canRetry || isDepositError) && (
           <div className="mb-4">
-            <RecoveryGuidance recoveryAction={errorDetails?.recoveryAction} />
+            <RecoveryGuidance
+              recoveryAction={errorDetails?.recoveryAction}
+              isDepositError={isDepositError}
+            />
           </div>
         )}
 
@@ -393,6 +497,10 @@ function getRecoverySuggestion(action: string): string {
       return 'Switch to the correct network and try again.';
     case 'contact_support':
       return 'If the issue persists, please contact support.';
+    case 'retry_deposit':
+      return 'You can retry the deposit or deposit manually from the Hyperliquid app.';
+    case 'manual_deposit':
+      return 'Your USDC is on HyperEVM. You can deposit manually from the Hyperliquid app.';
     default:
       return 'Please try again or contact support if the issue persists.';
   }
@@ -478,6 +586,9 @@ export function ExecutionModal({
     toChainId,
     error,
     errorDetails,
+    autoDepositCompleted,
+    depositTxHash,
+    finalTradingBalance,
     closeModal,
     reset,
   } = useTransactionStore();
@@ -518,9 +629,9 @@ export function ExecutionModal({
       case 'executing':
         return 'Bridging in Progress';
       case 'completed':
-        return 'Bridge Complete';
+        return autoDepositCompleted ? 'Bridge & Deposit Complete' : 'Bridge Complete';
       case 'failed':
-        return 'Transaction Failed';
+        return errorDetails?.code === 'DEPOSIT_FAILED' ? 'Deposit Failed' : 'Transaction Failed';
       default:
         return 'Bridge Transaction';
     }
@@ -556,6 +667,9 @@ export function ExecutionModal({
             receivedAmount={receivedAmount}
             fromChainId={fromChainId}
             toChainId={toChainId}
+            autoDepositCompleted={autoDepositCompleted}
+            depositTxHash={depositTxHash}
+            finalTradingBalance={finalTradingBalance}
             onBridgeAgain={onBridgeAgain}
             onClose={handleClose}
           />

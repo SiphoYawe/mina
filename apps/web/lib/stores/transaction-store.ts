@@ -60,6 +60,12 @@ export interface ExecutionState {
   startedAt: number | null;
   /** Timestamp when execution completed/failed */
   completedAt: number | null;
+  /** Whether auto-deposit was executed */
+  autoDepositCompleted: boolean;
+  /** Deposit transaction hash on HyperEVM */
+  depositTxHash: string | null;
+  /** Final trading account balance on Hyperliquid L1 */
+  finalTradingBalance: string | null;
 }
 
 /**
@@ -86,6 +92,9 @@ export interface ExecutionActions {
     txHash?: string;
     receivingTxHash?: string;
     receivedAmount?: string;
+    autoDepositCompleted?: boolean;
+    depositTxHash?: string;
+    finalTradingBalance?: string;
   }) => void;
   /** Set execution as failed */
   setFailed: (error: {
@@ -166,6 +175,9 @@ const initialState: ExecutionState = {
   errorDetails: null,
   startedAt: null,
   completedAt: null,
+  autoDepositCompleted: false,
+  depositTxHash: null,
+  finalTradingBalance: null,
 };
 
 export const useTransactionStore = create<ExecutionState & ExecutionActions>()(
@@ -275,6 +287,9 @@ export const useTransactionStore = create<ExecutionState & ExecutionActions>()(
             receivingTxHash: result.receivingTxHash ?? null,
             receivedAmount: result.receivedAmount ?? null,
             completedAt: Date.now(),
+            autoDepositCompleted: result.autoDepositCompleted ?? false,
+            depositTxHash: result.depositTxHash ?? null,
+            finalTradingBalance: result.finalTradingBalance ?? null,
           },
           false,
           'setCompleted'

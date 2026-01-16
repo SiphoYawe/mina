@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useWalletClient } from 'wagmi';
 import type { WalletClient } from 'viem';
 import { useMina } from '@/app/providers';
 import { useTransactionStore } from '@/lib/stores/transaction-store';
-import type { Quote, StepStatusPayload, TransactionStatusPayload, StepType } from '@siphoyawe/mina-sdk';
+import type { Quote, StepStatusPayload, TransactionStatusPayload, StepType, DepositResult } from '@siphoyawe/mina-sdk';
 
 /**
  * Bridge execution result
@@ -17,6 +17,12 @@ export interface ExecutionResult {
   receivingTxHash?: string;
   receivedAmount?: string;
   error?: Error;
+  /** Deposit transaction hash on HyperEVM */
+  depositTxHash?: string;
+  /** Final trading account balance on Hyperliquid */
+  finalTradingBalance?: string;
+  /** Whether auto-deposit was executed */
+  autoDepositExecuted?: boolean;
 }
 
 /**
@@ -154,6 +160,17 @@ export function useBridgeExecution() {
         type: mapStepType(step.type),
       }));
 
+      // Add deposit step if auto-deposit is enabled and not already included
+      const hasDepositStep = stepInfo.some(s => s.type === 'deposit');
+      const autoDepositEnabled = quote.includesAutoDeposit ?? mina.isAutoDepositEnabled();
+
+      if (autoDepositEnabled && !hasDepositStep) {
+        stepInfo.push({
+          id: `deposit_${Date.now()}`,
+          type: 'deposit' as StepType,
+        });
+      }
+
       // Generate a simple execution ID
       const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
@@ -182,6 +199,145 @@ export function useBridgeExecution() {
 
         // Handle completion
         if (result.status === 'completed') {
+          // If auto-deposit is enabled, execute deposit flow
+          if (autoDepositEnabled) {
+            const depositStepId = stepInfo.find(s => s.type === 'deposit')?.id;
+            if (depositStepId) {
+              // Mark deposit step as active
+              updateStep({
+                stepId: depositStepId,
+                step: 'deposit',
+                status: 'active',
+                txHash: null,
+                error: null,
+                timestamp: Date.now(),
+              });
+
+              try {
+                // Get wallet address
+                const walletAddress = await signer.getAddress();
+
+                // Detect USDC arrival on HyperEVM
+                console.log('[BridgeExecution] Detecting USDC arrival on HyperEVM...');
+                const arrivalResult = await mina.detectUsdcArrival(walletAddress, {
+                  timeout: 300000, // 5 minutes
+                  expectedAmount: result.receivedAmount,
+                });
+
+                if (!arrivalResult.detected) {
+                  throw new Error('USDC did not arrive on HyperEVM within timeout');
+                }
+
+                console.log('[BridgeExecution] USDC arrived, executing deposit...');
+
+                // Execute deposit to Hyperliquid L1
+                const { executeDeposit: sdkExecuteDeposit, monitorL1Confirmation } = await import('@siphoyawe/mina-sdk');
+
+                const depositResult = await sdkExecuteDeposit(signer, {
+                  amount: arrivalResult.amount,
+                  walletAddress,
+                  destinationDex: 0, // PERPS (trading account)
+                  onStatusChange: (status) => {
+                    console.log('[BridgeExecution] Deposit status:', status);
+                  },
+                  onDepositSubmitted: (txHash) => {
+                    console.log('[BridgeExecution] Deposit submitted:', txHash);
+                    updateStep({
+                      stepId: depositStepId,
+                      step: 'deposit',
+                      status: 'active',
+                      txHash,
+                      error: null,
+                      timestamp: Date.now(),
+                    });
+                  },
+                  infiniteApproval: true,
+                });
+
+                if (!depositResult.success) {
+                  throw new Error('Deposit transaction failed');
+                }
+
+                console.log('[BridgeExecution] Deposit confirmed, monitoring L1...');
+
+                // Monitor L1 confirmation
+                const { result: l1ResultPromise } = monitorL1Confirmation(
+                  walletAddress,
+                  depositResult.amount,
+                  depositResult.depositTxHash,
+                  { timeout: 180000 } // 3 minutes
+                );
+                const l1Result = await l1ResultPromise;
+
+                // Mark deposit step as completed
+                updateStep({
+                  stepId: depositStepId,
+                  step: 'deposit',
+                  status: 'completed',
+                  txHash: depositResult.depositTxHash,
+                  error: null,
+                  timestamp: Date.now(),
+                });
+
+                setCompleted({
+                  txHash: result.txHash,
+                  receivingTxHash: depositResult.depositTxHash,
+                  receivedAmount: result.receivedAmount,
+                  autoDepositCompleted: true,
+                  depositTxHash: depositResult.depositTxHash,
+                  finalTradingBalance: l1Result.finalBalance,
+                });
+
+                setIsLocalExecuting(false);
+
+                return {
+                  success: true,
+                  executionId: result.executionId,
+                  txHash: result.txHash,
+                  receivingTxHash: depositResult.depositTxHash,
+                  receivedAmount: result.receivedAmount,
+                  depositTxHash: depositResult.depositTxHash,
+                  finalTradingBalance: l1Result.finalBalance,
+                  autoDepositExecuted: true,
+                };
+              } catch (depositError) {
+                // Deposit failed - mark step as failed but bridge succeeded
+                const depositErr = depositError instanceof Error ? depositError : new Error(String(depositError));
+                console.error('[BridgeExecution] Deposit failed:', depositErr);
+
+                updateStep({
+                  stepId: depositStepId,
+                  step: 'deposit',
+                  status: 'failed',
+                  txHash: null,
+                  error: depositErr,
+                  timestamp: Date.now(),
+                });
+
+                // Set failed but with a recoverable error (USDC is safe on HyperEVM)
+                setFailed({
+                  message: depositErr.message,
+                  code: 'DEPOSIT_FAILED',
+                  recoverable: true,
+                  recoveryAction: 'retry_deposit',
+                  userMessage: 'Your USDC arrived on HyperEVM but the deposit to Hyperliquid failed. You can retry or deposit manually.',
+                });
+
+                setIsLocalExecuting(false);
+
+                return {
+                  success: false,
+                  executionId: result.executionId,
+                  txHash: result.txHash,
+                  receivedAmount: result.receivedAmount,
+                  error: depositErr,
+                  autoDepositExecuted: false,
+                };
+              }
+            }
+          }
+
+          // No auto-deposit or no deposit step
           setCompleted({
             txHash: result.txHash,
             receivingTxHash: result.depositTxHash ?? undefined,
@@ -196,6 +352,7 @@ export function useBridgeExecution() {
             txHash: result.txHash,
             receivingTxHash: result.depositTxHash ?? undefined,
             receivedAmount: result.receivedAmount,
+            autoDepositExecuted: false,
           };
         } else if (result.status === 'failed') {
           const errorObj = result.error || new Error('Bridge transaction failed');

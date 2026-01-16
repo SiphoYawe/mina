@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SdkStatus } from '@/components/sdk-status';
 import { ConnectButton } from '@/components/wallet/connect-button';
-import { BridgeForm } from '@/components/bridge';
+import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,11 @@ export default function Home() {
         <ErrorBoundary FallbackComponent={BridgeFormErrorFallback}>
           <BridgeForm />
         </ErrorBoundary>
+
+        {/* Recent Transactions */}
+        <div className="max-w-md mx-auto mt-8">
+          <RecentTransactions maxItems={5} />
+        </div>
 
         {/* SDK Status */}
         <SdkStatus />

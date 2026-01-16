@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
-import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution } from '@/lib/hooks';
+import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution, useTransactionHistory } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 import type { Chain } from '@siphoyawe/mina-sdk';
@@ -86,7 +86,8 @@ export function BridgeForm() {
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
   const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
   const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
-  const { execute, retry, isExecuting, isRetrying, reset: resetExecution } = useBridgeExecution();
+  const { execute, retry, isExecuting, isRetrying, reset: resetExecution, steps: executionSteps } = useBridgeExecution();
+  const { addTransaction, updateTransaction } = useTransactionHistory();
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
@@ -175,22 +176,68 @@ export function BridgeForm() {
 
   // Handle bridge execution
   const handleBridge = useCallback(async () => {
-    if (!quote) {
+    if (!quote || !sourceChain) {
       console.error('[BridgeForm] No quote available');
       return;
     }
 
     console.log('[BridgeForm] Starting bridge execution');
+
+    // Save transaction to history before execution
+    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    addTransaction({
+      executionId,
+      fromChainId: quote.fromToken.chainId,
+      fromChainName: sourceChain.name,
+      toChainId: quote.toToken.chainId,
+      toChainName: 'HyperEVM',
+      fromToken: {
+        address: quote.fromToken.address,
+        symbol: quote.fromToken.symbol,
+        decimals: quote.fromToken.decimals,
+        chainId: quote.fromToken.chainId,
+      },
+      toToken: {
+        address: quote.toToken.address,
+        symbol: quote.toToken.symbol,
+        decimals: quote.toToken.decimals,
+        chainId: quote.toToken.chainId,
+      },
+      fromAmount: quote.fromAmount,
+      toAmount: quote.toAmount,
+      steps: executionSteps,
+    });
+
     const result = await execute(quote);
 
+    // Update transaction status based on result
+    // Use the local executionId we generated (not result.executionId) to ensure consistency
     if (result.success) {
       console.log('[BridgeForm] Bridge completed successfully:', result);
+      updateTransaction(executionId, {
+        status: 'completed',
+        txHash: result.txHash ?? null,
+        receivingTxHash: result.receivingTxHash ?? null,
+        receivedAmount: result.receivedAmount ?? null,
+      });
       // Reset form amount after successful bridge
       setAmount('');
     } else {
       console.error('[BridgeForm] Bridge failed:', result.error);
+      // Include error details for recovery guidance
+      const errorObj = result.error as any;
+      updateTransaction(executionId, {
+        status: 'failed',
+        error: result.error?.message ?? 'Bridge transaction failed',
+        errorDetails: errorObj ? {
+          code: errorObj.code,
+          recoverable: errorObj.recoverable,
+          recoveryAction: errorObj.recoveryAction,
+          userMessage: errorObj.userMessage,
+        } : null,
+      });
     }
-  }, [quote, execute, setAmount]);
+  }, [quote, sourceChain, execute, setAmount, addTransaction, updateTransaction, executionSteps]);
 
   // Handle bridge again (reset and refetch quote)
   const handleBridgeAgain = useCallback(() => {
