@@ -6,11 +6,12 @@ import { useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
+import { QuoteDisplay } from './quote-display';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
-import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance } from '@/lib/hooks';
+import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 import type { Chain } from '@siphoyawe/mina-sdk';
@@ -78,6 +79,7 @@ export function BridgeForm() {
   const { needsSwitch, targetChainId } = useNetworkSwitchNeeded();
   const { refetchBalances } = useWalletBalance();
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
+  const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
@@ -269,16 +271,12 @@ export function BridgeForm() {
           <DestinationChainDisplay />
         </div>
 
-        {/* Output Amount (placeholder) */}
-        <div className="space-y-2">
-          <label className="text-small text-text-secondary">You receive</label>
-          <Input
-            placeholder="0.00"
-            type="text"
-            disabled
-            className="bg-bg-surface/50"
-          />
-        </div>
+        {/* Quote Display */}
+        <QuoteDisplay
+          quote={quote}
+          isLoading={isQuoteLoading}
+          error={quoteError}
+        />
 
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
