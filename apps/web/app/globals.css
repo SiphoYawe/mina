@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Background Colors */
+  --bg-base: #09090B;
+  --bg-surface: #111113;
+  --bg-elevated: #18181B;
+
+  /* Border Colors */
+  --border-subtle: #27272A;
+  --border-default: #3F3F46;
+
+  /* Accent Colors */
+  --accent-primary: #7DD3FC;
+  --accent-hover: #93C5FD;
+  --accent-glow: rgba(125, 211, 252, 0.15);
+  --accent-muted: #0EA5E9;
+
+  /* Text Colors */
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+
+  /* Semantic Colors */
+  --success: #0ECC83;
+  --warning: #FBBF24;
+  --error: #F87171;
+  --info: #60A5FA;
+
+  /* Animation Durations */
+  --duration-micro: 150ms;
+  --duration-standard: 300ms;
+  --duration-emphasis: 500ms;
+
+  /* Border Radius */
+  --radius: 12px;
+}
+
+@layer base {
+  * {
+    @apply border-border-subtle;
+  }
+
+  body {
+    @apply bg-bg-base text-text-primary antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Typography */
+  h1 {
+    @apply text-h1 text-text-primary;
+  }
+
+  h2 {
+    @apply text-h2 text-text-primary;
+  }
+
+  h3 {
+    @apply text-h3 text-text-primary;
+  }
+
+  p {
+    @apply text-body text-text-secondary;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent-primary ring-offset-2 ring-offset-bg-base;
+  }
+}
+
+@layer utilities {
+  /* Glow effects */
+  .glow {
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 40px rgba(125, 211, 252, 0.2);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-bg-surface/80 backdrop-blur-xl;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent-primary to-accent-hover bg-clip-text text-transparent;
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
