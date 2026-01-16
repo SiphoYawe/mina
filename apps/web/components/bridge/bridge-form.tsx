@@ -182,7 +182,7 @@ export function BridgeForm() {
   }, [isConnected, needsSwitch, sourceChain, amount, quote, isBalanceValid]);
 
   // Determine if bridge button should be disabled
-  const hasBalanceIssue = quote && !isBalanceValid;
+  const hasBalanceIssue = Boolean(quote && !isBalanceValid);
   const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending || hasBalanceIssue;
 
   return (
@@ -309,7 +309,7 @@ export function BridgeForm() {
 
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
-          show={isBridgeDisabled && isConnected}
+          show={Boolean(isBridgeDisabled && isConnected)}
           message={getTooltipMessage()}
         >
           <Button
