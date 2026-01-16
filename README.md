@@ -169,13 +169,6 @@ function BridgeForm() {
 
 Built for the **Hyperliquid London Community Hackathon** (January 16-18, 2026) for the **LI.FI - One-Click Onboarding to Hyperliquid** track.
 
-### Judging Criteria
-
-- Creative use of LI.FI infrastructure
-- User experience and design quality
-- Technical implementation and reliability
-- Fit within Hyperliquid ecosystem
-
 ## License
 
 MIT
