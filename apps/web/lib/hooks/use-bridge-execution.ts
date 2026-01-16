@@ -67,6 +67,10 @@ function createWagmiSigner(walletClient: WagmiWalletClient) {
         }
       }
 
+      if (!walletClient.account) {
+        throw new Error('Wallet account not available. Please reconnect your wallet.');
+      }
+
       const hash = await walletClient.sendTransaction({
         to: tx.to as `0x${string}`,
         data: tx.data as `0x${string}`,
@@ -74,7 +78,7 @@ function createWagmiSigner(walletClient: WagmiWalletClient) {
         gas: tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
         gasPrice: tx.gasPrice ? BigInt(tx.gasPrice) : undefined,
         chain: walletClient.chain,
-        account: walletClient.account!,
+        account: walletClient.account,
       });
 
       return hash;

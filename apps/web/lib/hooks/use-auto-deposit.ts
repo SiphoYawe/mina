@@ -4,7 +4,7 @@ import { useCallback, useState, useRef, useEffect } from 'react';
 import { useWalletClient } from 'wagmi';
 import type { WalletClient } from 'viem';
 import { useMina } from '@/app/providers';
-import type { DepositResult, DepositStatus, L1ConfirmationResult, BridgeCompleteSummary } from '@siphoyawe/mina-sdk';
+import type { DepositResult, DepositStatus, L1ConfirmationResult, BridgeCompleteSummary, L1MonitorController } from '@siphoyawe/mina-sdk';
 
 /**
  * Deposit state for tracking auto-deposit flow
@@ -73,6 +73,8 @@ export function useAutoDeposit() {
   const { mina, isReady } = useMina();
   const { data: walletClient } = useWalletClient();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const l1ControllerRef = useRef<L1MonitorController | null>(null);
+  const isMountedRef = useRef(true);
 
   const [state, setState] = useState<DepositState>({
     isDepositing: false,
@@ -88,11 +90,23 @@ export function useAutoDeposit() {
     bridgeSummary: null,
   });
 
+  // Safe setState that checks if component is still mounted
+  const safeSetState = useCallback((update: React.SetStateAction<DepositState>) => {
+    if (isMountedRef.current) {
+      setState(update);
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      if (l1ControllerRef.current) {
+        l1ControllerRef.current.cancel();
       }
     };
   }, []);
@@ -126,13 +140,17 @@ export function useAutoDeposit() {
           }
         }
 
+        if (!client.account) {
+          throw new Error('Wallet account not available. Please reconnect your wallet.');
+        }
+
         const hash = await client.sendTransaction({
           to: tx.to as `0x${string}`,
           data: tx.data as `0x${string}`,
           value: tx.value ? BigInt(tx.value) : undefined,
           gas: tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
           chain: client.chain,
-          account: client.account!,
+          account: client.account,
         });
 
         return hash;
@@ -151,20 +169,20 @@ export function useAutoDeposit() {
   }> => {
     if (!mina || !isReady) {
       const error = new Error('SDK not initialized');
-      setState(prev => ({ ...prev, error, isRecoverable: false }));
+      safeSetState(prev => ({ ...prev, error, isRecoverable: false }));
       return { success: false, error };
     }
 
     if (!walletClient) {
       const error = new Error('Wallet not connected');
-      setState(prev => ({ ...prev, error, isRecoverable: false }));
+      safeSetState(prev => ({ ...prev, error, isRecoverable: false }));
       return { success: false, error };
     }
 
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
 
-    setState({
+    safeSetState({
       isDepositing: true,
       status: 'waiting_arrival',
       hyperEvmTxHash: null,
@@ -184,7 +202,7 @@ export function useAutoDeposit() {
 
       // Step 1: Detect USDC arrival on HyperEVM
       console.log('[AutoDeposit] Detecting USDC arrival on HyperEVM...');
-      setState(prev => ({ ...prev, status: 'waiting_arrival' }));
+      safeSetState(prev => ({ ...prev, status: 'waiting_arrival' }));
 
       const arrivalResult = await mina.detectUsdcArrival(walletAddress, {
         timeout: 300000, // 5 minutes
@@ -202,7 +220,7 @@ export function useAutoDeposit() {
       options.onDepositStarted?.();
 
       // Step 2: Execute deposit to Hyperliquid L1
-      setState(prev => ({ ...prev, status: 'checking_balance' }));
+      safeSetState(prev => ({ ...prev, status: 'checking_balance' }));
 
       // Import deposit function from SDK
       const { executeDeposit: sdkExecuteDeposit } = await import('@siphoyawe/mina-sdk');
@@ -213,15 +231,15 @@ export function useAutoDeposit() {
         destinationDex: 0, // PERPS (trading account)
         onStatusChange: (status) => {
           console.log('[AutoDeposit] Status:', status);
-          setState(prev => ({ ...prev, status }));
+          safeSetState(prev => ({ ...prev, status }));
         },
         onDepositSubmitted: (txHash) => {
           console.log('[AutoDeposit] Deposit submitted:', txHash);
-          setState(prev => ({ ...prev, hyperEvmTxHash: txHash }));
+          safeSetState(prev => ({ ...prev, hyperEvmTxHash: txHash }));
         },
         onApprovalSubmitted: (txHash) => {
           console.log('[AutoDeposit] Approval submitted:', txHash);
-          setState(prev => ({ ...prev, approvalTxHash: txHash }));
+          safeSetState(prev => ({ ...prev, approvalTxHash: txHash }));
         },
         infiniteApproval: true,
       });
@@ -232,7 +250,7 @@ export function useAutoDeposit() {
 
       console.log('[AutoDeposit] Deposit confirmed on HyperEVM:', depositResult.depositTxHash);
 
-      setState(prev => ({
+      safeSetState(prev => ({
         ...prev,
         status: 'l1_monitoring',
         hyperEvmTxHash: depositResult.depositTxHash,
@@ -244,7 +262,7 @@ export function useAutoDeposit() {
       // Step 3: Monitor L1 confirmation
       const { monitorL1Confirmation } = await import('@siphoyawe/mina-sdk');
 
-      const { result: l1ResultPromise } = monitorL1Confirmation(
+      const { result: l1ResultPromise, controller } = monitorL1Confirmation(
         walletAddress,
         depositResult.amount,
         depositResult.depositTxHash,
@@ -258,11 +276,14 @@ export function useAutoDeposit() {
           },
         }
       );
+      // Store controller for cleanup on unmount
+      l1ControllerRef.current = controller;
       const l1Result = await l1ResultPromise;
+      l1ControllerRef.current = null; // Clear after completion
 
       console.log('[AutoDeposit] L1 confirmed:', l1Result);
 
-      setState(prev => ({
+      safeSetState(prev => ({
         ...prev,
         status: 'l1_confirmed',
         isDepositing: false,
@@ -285,7 +306,7 @@ export function useAutoDeposit() {
         err.message.includes('rejected') ||
         err.message.includes('gas');
 
-      setState(prev => ({
+      safeSetState(prev => ({
         ...prev,
         isDepositing: false,
         status: 'failed',
@@ -315,7 +336,7 @@ export function useAutoDeposit() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setState({
+    safeSetState({
       isDepositing: false,
       status: 'idle',
       hyperEvmTxHash: null,
