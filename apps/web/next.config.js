@@ -2,6 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@siphoyawe/mina-sdk'],
+  // Turbopack configuration (Next.js 16+ default bundler)
+  turbopack: {
+    root: '../../',
+    resolveAlias: {
+      // Optional wallet connectors we don't use
+      '@gemini-wallet/core': { browser: '' },
+      'porto': { browser: '' },
+      'porto/internal': { browser: '' },
+      // React Native packages that aren't needed for web
+      '@react-native-async-storage/async-storage': { browser: '' },
+    },
+  },
+  // Keep webpack config for fallback/compatibility
   webpack: (config, { isServer }) => {
     // Fix for optional wagmi connectors that may not be installed
     // These are optional peer dependencies that we don't need for our wallet flow
