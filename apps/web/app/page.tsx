@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { SdkStatus } from '@/components/sdk-status';
 import { ConnectButton } from '@/components/wallet/connect-button';
 import { BridgeForm, RecentTransactions } from '@/components/bridge';
@@ -44,12 +44,7 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-border-subtle">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center">
-              <span className="text-accent-primary font-bold">M</span>
-            </div>
-            <span className="text-h3 text-gradient">Mina</span>
-          </div>
+          <img src="/mina-logo.svg" alt="Mina" className="h-8" />
           <ConnectButton />
         </div>
       </header>
@@ -78,41 +73,6 @@ export default function Home() {
         <SdkStatus />
       </section>
 
-      {/* Features */}
-      <section className="container mx-auto px-4 py-16 grid md:grid-cols-3 gap-6">
-        <Card className="hover:border-accent-primary/50 transition-colors">
-          <CardHeader>
-            <CardTitle className="text-h3">40+ Chains</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-secondary">
-              Bridge from Ethereum, Arbitrum, Optimism, Base, Polygon, and many more.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-accent-primary/50 transition-colors">
-          <CardHeader>
-            <CardTitle className="text-h3">Auto Deposit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-secondary">
-              Funds automatically deposited to your Hyperliquid L1 trading account.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-accent-primary/50 transition-colors">
-          <CardHeader>
-            <CardTitle className="text-h3">Best Routes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-secondary">
-              Optimal routing via LI.FI for the best rates and lowest fees.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
     </main>
   );
 }

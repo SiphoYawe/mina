@@ -280,8 +280,8 @@ export function BridgeForm() {
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="relative">
+          <div className="text-center">
             <CardTitle>Bridge Assets</CardTitle>
             <CardDescription>
               Bridge from 40+ chains to Hyperliquid
@@ -292,7 +292,7 @@ export function BridgeForm() {
             onClick={refreshChains}
             disabled={isLoading}
             className={cn(
-              'p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
+              'absolute right-0 top-0 p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
               isLoading && 'animate-spin'
             )}
             title="Refresh chains"
