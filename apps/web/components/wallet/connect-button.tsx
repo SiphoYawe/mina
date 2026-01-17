@@ -105,15 +105,15 @@ export function ConnectButton({
 
   // Size variants for the button
   const sizeClasses = {
-    sm: 'h-8 px-3 text-caption',
-    md: 'h-10 px-4 text-small',
-    lg: 'h-12 px-6 text-body',
+    sm: 'h-10 px-4 py-2.5 text-caption',
+    md: 'h-11 px-5 py-3 text-small',
+    lg: 'h-14 px-6 py-3.5 text-body',
   };
 
   // Style variants
   const variantClasses = {
     primary: 'bg-gradient-to-b from-accent-primary to-accent-muted text-bg-base border-t border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-2px_0_rgba(0,0,0,0.1),0_0_20px_rgba(125,211,252,0.3)] hover:brightness-110 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-2px_0_rgba(0,0,0,0.1),0_0_30px_rgba(125,211,252,0.5)] active:scale-[0.98] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]',
-    secondary: 'bg-bg-elevated/60 backdrop-blur-xl backdrop-saturate-150 text-text-primary border border-border-default/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-bg-surface/70 hover:border-accent-primary/50 hover:shadow-[0_0_15px_rgba(125,211,252,0.15)]',
+    secondary: 'bg-bg-base/70 backdrop-blur-3xl backdrop-saturate-150 text-text-primary border border-border-default/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-bg-surface/60 hover:border-accent-primary/50 hover:shadow-[0_0_15px_rgba(125,211,252,0.15)]',
     ghost: 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
   };
 

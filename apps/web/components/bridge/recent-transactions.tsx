@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Clock, CheckCircle2, XCircle, Loader2, ExternalLink, ChevronRight, History } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Loader2, ExternalLink, ChevronRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Time01Icon } from '@hugeicons/core-free-icons';
 import { useTransactionHistory } from '@/lib/hooks/use-transaction-history';
 import type { StoredTransaction, StoredTransactionStatus } from '@/lib/storage/transactions';
 import { cn } from '@/lib/utils';
@@ -180,7 +182,7 @@ function EmptyState() {
   return (
     <div className="text-center py-8">
       <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-bg-elevated flex items-center justify-center">
-        <History className="w-6 h-6 text-text-muted" />
+        <HugeiconsIcon icon={Time01Icon} size={24} className="text-text-muted" />
       </div>
       <p className="text-body text-text-muted">No recent transactions</p>
       <p className="text-caption text-text-muted mt-1">

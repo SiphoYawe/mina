@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-bg-base overflow-hidden">
       {/* Header */}
-      <header className="relative z-10 border-b border-border-default/40 bg-bg-elevated/50 backdrop-blur-2xl backdrop-saturate-150">
+      <header className="relative z-10 border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src="/mina-logo.svg" alt="Mina" className="h-8" />
           <ConnectButton />
@@ -59,11 +59,11 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative z-20 text-text-primary mb-6 text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight"
+          className="relative z-20 text-text-primary mb-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
         >
           Bridge to
           <br />
-          <span className="text-gradient-vertical">Hyperliquid</span>
+          <span className="text-accent-primary">Hyperliquid</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
