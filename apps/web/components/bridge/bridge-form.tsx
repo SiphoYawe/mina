@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import { AlertCircle, ArrowDown, ArrowRight, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowRight, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play, ChevronDown, Sparkles, Zap, Coins } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useRouter } from 'next/navigation';
@@ -185,8 +185,18 @@ function ExchangeRateDisplay({ quote, className }: { quote: Quote; className?: s
 }
 
 /**
+ * Route type icon mapping
+ */
+const ROUTE_TYPE_ICONS = {
+  fastest: Zap,
+  cheapest: Coins,
+  recommended: Sparkles,
+} as const;
+
+/**
  * Alternative routes display component (QUOTE-003)
  * Shows alternative routes with trade-offs when available
+ * Enhanced design with better visual hierarchy and polish
  */
 function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; className?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -207,47 +217,137 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
     return `~${minutes}m`;
   };
 
+  // Get the icon for the current route
+  const CurrentRouteIcon = ROUTE_TYPE_ICONS[quote.routePreference as keyof typeof ROUTE_TYPE_ICONS] || Sparkles;
+
   return (
-    <div className={cn('border border-border-subtle rounded-xl overflow-hidden', className)}>
+    <div className={cn(
+      'rounded-xl overflow-hidden',
+      'bg-gradient-to-b from-bg-surface/80 to-bg-base/60',
+      'border border-border-subtle/60',
+      'backdrop-blur-sm',
+      'shadow-[0_2px_12px_rgba(0,0,0,0.15)]',
+      className
+    )}>
+      {/* Header Button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-bg-surface/50 hover:bg-bg-elevated/50 transition-colors"
+        className={cn(
+          'w-full flex items-center justify-between px-4 py-3.5',
+          'bg-gradient-to-r from-transparent via-accent-primary/[0.03] to-transparent',
+          'hover:via-accent-primary/[0.06]',
+          'transition-all duration-200',
+          'group'
+        )}
       >
-        <span className="text-small text-text-secondary flex items-center gap-2">
-          <Info className="w-4 h-4" />
-          {differentRoutes.length} alternative route{differentRoutes.length > 1 ? 's' : ''} available
-        </span>
-        <span className={cn('text-text-muted transition-transform text-caption', isExpanded && 'rotate-180')}>
-          ▼
-        </span>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'w-7 h-7 rounded-lg flex items-center justify-center',
+            'bg-accent-primary/10 border border-accent-primary/20',
+            'group-hover:bg-accent-primary/15 group-hover:border-accent-primary/30',
+            'transition-colors duration-200'
+          )}>
+            <Info className="w-3.5 h-3.5 text-accent-primary" />
+          </div>
+          <span className="text-small text-text-secondary font-medium">
+            {differentRoutes.length} alternative route{differentRoutes.length > 1 ? 's' : ''} available
+          </span>
+        </div>
+        <ChevronDown className={cn(
+          'w-5 h-5 text-text-muted',
+          'transition-transform duration-300 ease-out',
+          'group-hover:text-text-secondary',
+          isExpanded && 'rotate-180'
+        )} />
       </button>
 
+      {/* Expanded Content */}
       {isExpanded && (
-        <div className="p-3 space-y-2 border-t border-border-subtle bg-bg-base/50">
-          <p className="text-caption text-text-muted mb-2">
-            Current route: <span className="text-text-secondary font-medium">{quote.routePreference}</span> (selected)
-          </p>
-          {differentRoutes.map((route) => (
-            <div
-              key={route.routeId}
-              className="flex items-center justify-between p-2 rounded-lg bg-bg-surface/30 border border-border-subtle"
-            >
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  'px-2 py-0.5 rounded text-caption font-medium',
-                  route.type === 'fastest' && 'bg-success/10 text-success',
-                  route.type === 'cheapest' && 'bg-accent-primary/10 text-accent-primary',
-                  route.type === 'recommended' && 'bg-warning/10 text-warning'
-                )}>
-                  {route.type}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-caption text-text-muted">
-                <span>{formatTime(route.estimatedTime)}</span>
-                <span>${parseFloat(route.totalFees).toFixed(2)} fees</span>
-              </div>
+        <div className={cn(
+          'px-4 pb-4 pt-2 space-y-3',
+          'border-t border-border-subtle/50',
+          'bg-gradient-to-b from-bg-base/30 to-transparent',
+          'animate-in slide-in-from-top-2 duration-200'
+        )}>
+          {/* Current Route Indicator */}
+          <div className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'bg-accent-primary/[0.08] border border-accent-primary/20'
+          )}>
+            <div className="w-6 h-6 rounded-md bg-accent-primary/20 flex items-center justify-center">
+              <CurrentRouteIcon className="w-3.5 h-3.5 text-accent-primary" />
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <span className="text-caption text-text-muted">Current route:</span>
+              <span className="text-small text-accent-primary font-semibold capitalize">
+                {quote.routePreference}
+              </span>
+              <span className={cn(
+                'px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide',
+                'bg-accent-primary/20 text-accent-primary'
+              )}>
+                Selected
+              </span>
+            </div>
+          </div>
+
+          {/* Alternative Routes */}
+          <div className="space-y-2">
+            {differentRoutes.map((route) => {
+              const RouteIcon = ROUTE_TYPE_ICONS[route.type as keyof typeof ROUTE_TYPE_ICONS] || Sparkles;
+              const isSuccess = route.type === 'fastest';
+              const isAccent = route.type === 'cheapest';
+              const isWarning = route.type === 'recommended';
+
+              return (
+                <div
+                  key={route.routeId}
+                  className={cn(
+                    'flex items-center justify-between p-3 rounded-lg',
+                    'bg-bg-surface/50 hover:bg-bg-surface/70',
+                    'border border-border-subtle/50 hover:border-border-default/50',
+                    'transition-all duration-150',
+                    'group/route cursor-default'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center',
+                      'transition-colors duration-150',
+                      isSuccess && 'bg-success/10 border border-success/20 group-hover/route:bg-success/15',
+                      isAccent && 'bg-accent-primary/10 border border-accent-primary/20 group-hover/route:bg-accent-primary/15',
+                      isWarning && 'bg-warning/10 border border-warning/20 group-hover/route:bg-warning/15'
+                    )}>
+                      <RouteIcon className={cn(
+                        'w-4 h-4',
+                        isSuccess && 'text-success',
+                        isAccent && 'text-accent-primary',
+                        isWarning && 'text-warning'
+                      )} />
+                    </div>
+                    <span className={cn(
+                      'text-small font-semibold capitalize',
+                      isSuccess && 'text-success',
+                      isAccent && 'text-accent-primary',
+                      isWarning && 'text-warning'
+                    )}>
+                      {route.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-text-muted">
+                      <Zap className="w-3 h-3" />
+                      <span className="text-small tabular-nums">{formatTime(route.estimatedTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-text-muted">
+                      <Coins className="w-3 h-3" />
+                      <span className="text-small tabular-nums">${parseFloat(route.totalFees).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
