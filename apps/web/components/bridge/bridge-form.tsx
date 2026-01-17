@@ -34,16 +34,63 @@ const MAX_BRIDGE_AMOUNT_USD = 100000; // Maximum $100k per transaction (safety l
 
 /**
  * Destination Chain Display
- * Shows HyperEVM as the fixed destination
+ * Premium HyperEVM branding with glow effect
  */
 function DestinationChainDisplay() {
   return (
-    <div className="flex items-center gap-3 h-12 px-4 rounded-card border border-border-default bg-bg-surface/50">
-      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-primary to-accent-muted flex items-center justify-center flex-shrink-0">
-        <span className="text-[10px] font-bold text-bg-base">H</span>
+    <div className="relative group">
+      {/* Subtle glow effect behind the card */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-success/20 via-accent-primary/20 to-success/20 rounded-xl blur-sm opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+
+      <div className="relative flex items-center gap-3 h-12 px-4 rounded-xl border border-success/30 bg-gradient-to-r from-bg-surface via-bg-elevated/80 to-bg-surface backdrop-blur-sm">
+        {/* HyperEVM Logo */}
+        <div className="relative">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-success via-success/80 to-accent-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-success/20">
+            <span className="text-xs font-bold text-bg-base tracking-tight">H</span>
+          </div>
+          {/* Pulse ring */}
+          <div className="absolute inset-0 rounded-lg bg-success/30 animate-ping opacity-30" style={{ animationDuration: '2s' }} />
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-body font-semibold text-text-primary">HyperEVM</span>
+          <span className="text-[10px] text-success font-medium uppercase tracking-wider">Destination</span>
+        </div>
+
+        {/* Status indicator */}
+        <div className="ml-auto flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+          <span className="text-caption text-success/80 font-medium">Ready</span>
+        </div>
       </div>
-      <span className="text-body text-text-primary">HyperEVM</span>
-      <span className="ml-auto text-caption text-text-muted">(Destination)</span>
+    </div>
+  );
+}
+
+/**
+ * Animated Bridge Arrow/Portal
+ * Visual centerpiece that conveys the bridging action
+ */
+function BridgePortal({ className }: { className?: string }) {
+  return (
+    <div className={cn("relative flex items-center justify-center", className)}>
+      {/* Outer glow rings */}
+      <div className="absolute w-20 h-20 md:w-24 md:h-24 rounded-full bg-accent-primary/5 animate-pulse" style={{ animationDuration: '3s' }} />
+      <div className="absolute w-16 h-16 md:w-20 md:h-20 rounded-full bg-accent-primary/10 animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+
+      {/* Main portal circle */}
+      <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-accent-primary/20 via-accent-muted/30 to-accent-primary/20 border-2 border-accent-primary/40 flex items-center justify-center shadow-[0_0_30px_rgba(125,211,252,0.3)] backdrop-blur-sm group hover:shadow-[0_0_40px_rgba(125,211,252,0.5)] transition-all duration-300">
+        {/* Inner glow */}
+        <div className="absolute inset-2 rounded-full bg-gradient-to-br from-accent-primary/30 to-transparent" />
+
+        {/* Arrow icon */}
+        <ArrowDown className="relative w-6 h-6 md:hidden text-accent-primary drop-shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
+        <ArrowRight className="relative hidden md:block w-7 h-7 text-accent-primary drop-shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
+
+        {/* Animated particles (decorative dots) */}
+        <div className="absolute -left-1 top-1/2 w-1.5 h-1.5 rounded-full bg-accent-primary animate-[bridge-particle_2s_ease-in-out_infinite]" />
+        <div className="absolute -left-2 top-1/2 w-1 h-1 rounded-full bg-accent-primary/60 animate-[bridge-particle_2s_ease-in-out_infinite_0.3s]" />
+      </div>
     </div>
   );
 }
@@ -930,13 +977,9 @@ export function BridgeForm() {
             </div>
           </div>
 
-          {/* Arrow Divider - Center on desktop */}
-          <div className="flex justify-center py-3 md:py-0 md:px-2">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-muted/20 border-2 border-accent-primary/30 flex items-center justify-center shadow-lg shadow-accent-primary/10">
-              {/* ArrowDown on mobile, ArrowRight on desktop */}
-              <ArrowDown className="w-5 h-5 md:hidden text-accent-primary" />
-              <ArrowRight className="hidden md:block w-6 h-6 text-accent-primary" />
-            </div>
+          {/* Bridge Portal - Animated center element */}
+          <div className="flex justify-center py-4 md:py-0 md:px-4">
+            <BridgePortal />
           </div>
 
           {/* To Section - Right side on desktop */}

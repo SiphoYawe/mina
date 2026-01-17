@@ -161,25 +161,29 @@ function PriceImpactBadge({
 }
 
 /**
- * Token display with logo and symbol
+ * Token display with logo and symbol - Enhanced premium version
  */
 function TokenBadge({ token }: { token: Token }) {
   return (
-    <div className="flex items-center gap-2">
-      {token.logoUrl ? (
-        <img
-          src={token.logoUrl}
-          alt={token.symbol}
-          className="w-6 h-6 rounded-full ring-1 ring-border-subtle"
-        />
-      ) : (
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent-primary to-accent-muted flex items-center justify-center">
-          <span className="text-[10px] font-bold text-bg-base">
-            {token.symbol.charAt(0)}
-          </span>
-        </div>
-      )}
-      <span className="text-body font-medium text-text-primary">{token.symbol}</span>
+    <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-bg-surface/80 border border-border-subtle/50 backdrop-blur-sm">
+      <div className="relative">
+        {token.logoUrl ? (
+          <img
+            src={token.logoUrl}
+            alt={token.symbol}
+            className="w-7 h-7 rounded-full ring-2 ring-accent-primary/20"
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent-primary to-accent-muted flex items-center justify-center shadow-lg shadow-accent-primary/20">
+            <span className="text-xs font-bold text-bg-base">
+              {token.symbol.charAt(0)}
+            </span>
+          </div>
+        )}
+        {/* Subtle glow behind token */}
+        <div className="absolute inset-0 rounded-full bg-accent-primary/20 blur-sm -z-10" />
+      </div>
+      <span className="text-body font-semibold text-text-primary">{token.symbol}</span>
     </div>
   );
 }
@@ -395,43 +399,52 @@ export function QuoteDisplay({
         </div>
       )}
 
-      {/* Output amount card */}
-      <div
-        className={cn(
-          'p-4 rounded-xl border transition-all duration-standard',
-          showHighImpactWarning
-            ? 'border-warning/30 bg-warning/5'
-            : 'border-border-subtle bg-bg-elevated/30'
+      {/* Output amount card - Premium design with glow */}
+      <div className="relative group">
+        {/* Glow effect behind card */}
+        {!showHighImpactWarning && (
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-success/20 via-accent-primary/15 to-success/20 rounded-2xl blur-md opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
         )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-caption text-text-muted">You&apos;ll receive</p>
-            <p className="text-h3 font-semibold text-text-primary tracking-tight">
-              {outputAmount}
-            </p>
+
+        <div
+          className={cn(
+            'relative p-5 rounded-xl border-2 transition-all duration-standard backdrop-blur-sm',
+            showHighImpactWarning
+              ? 'border-warning/40 bg-warning/5'
+              : 'border-success/30 bg-gradient-to-br from-bg-elevated/60 via-bg-surface/40 to-bg-elevated/60'
+          )}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <p className="text-caption text-text-muted uppercase tracking-wider font-medium">You&apos;ll receive</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
+                  {outputAmount}
+                </p>
+              </div>
+            </div>
+            <TokenBadge token={quote.toToken} />
           </div>
-          <TokenBadge token={quote.toToken} />
         </div>
       </div>
 
-      {/* Quick stats row - MOBILE-001 Fix: Better spacing and wrapping on mobile */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-small">
-        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
-          <span className="text-text-secondary font-medium text-[13px] sm:text-small">
+      {/* Quick stats row - Premium pill badges */}
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
+          <span className="text-success font-semibold text-small">
             {formatUsd(quote.fees.totalUsd)}
           </span>
-          <span className="text-[13px] sm:text-small">fees</span>
+          <span className="text-text-muted text-caption">fees</span>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
-          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span className="text-[13px] sm:text-small">{formatTime(quote.estimatedTime)}</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
+          <Clock className="w-3.5 h-3.5 text-accent-primary" />
+          <span className="text-text-primary font-medium text-small">{formatTime(quote.estimatedTime)}</span>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
-          <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span className="text-[13px] sm:text-small">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
+          <Layers className="w-3.5 h-3.5 text-accent-primary" />
+          <span className="text-text-primary font-medium text-small">
             {quote.steps.length} {quote.steps.length === 1 ? 'step' : 'steps'}
           </span>
         </div>

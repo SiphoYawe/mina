@@ -152,6 +152,36 @@
       transform: translateY(0);
     }
   }
+
+  /* Bridge portal particle animation */
+  @keyframes bridge-particle {
+    0%, 100% {
+      opacity: 0;
+      transform: translateX(0) scale(0.5);
+    }
+    20% {
+      opacity: 1;
+      transform: translateX(10px) scale(1);
+    }
+    80% {
+      opacity: 0.6;
+      transform: translateX(40px) scale(0.8);
+    }
+  }
+
+  /* Success pulse glow animation */
+  @keyframes success-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(14, 204, 131, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 35px rgba(14, 204, 131, 0.5);
+    }
+  }
+
+  .animate-success-glow {
+    animation: success-glow 2s ease-in-out infinite;
+  }
 }
 
 /* Confetti Canvas - ensure it doesn't block interactions */
