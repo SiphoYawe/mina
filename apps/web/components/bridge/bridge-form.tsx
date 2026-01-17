@@ -10,6 +10,7 @@ import { QuoteDisplay } from './quote-display';
 import { BalanceWarning } from './balance-warning';
 import { AutoDepositToggle } from './auto-deposit-toggle';
 import { ExecutionModal } from './execution-modal';
+import { SettingsPanel } from './settings-panel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,7 +85,7 @@ export function BridgeForm() {
   const { needsSwitch, targetChainId } = useNetworkSwitchNeeded();
   const { refetchBalances } = useWalletBalance();
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
-  const { quote, isLoading: isQuoteLoading, error: quoteError } = useBridgeQuote();
+  const { quote, isLoading: isQuoteLoading, error: quoteError, refetch: refetchQuote } = useBridgeQuote();
   const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
   const { execute, retry, isExecuting, isRetrying, reset: resetExecution, steps: executionSteps } = useBridgeExecution();
   const { addTransaction, updateTransaction } = useTransactionHistory();
@@ -287,18 +288,21 @@ export function BridgeForm() {
               Bridge from 40+ chains to Hyperliquid
             </CardDescription>
           </div>
-          {/* Refresh button */}
-          <button
-            onClick={refreshChains}
-            disabled={isLoading}
-            className={cn(
-              'absolute right-0 top-0 p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
-              isLoading && 'animate-spin'
-            )}
-            title="Refresh chains"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          {/* Settings and Refresh buttons */}
+          <div className="absolute right-0 top-0 flex items-center gap-1">
+            <SettingsPanel onSettingsChange={refetchQuote} />
+            <button
+              onClick={refreshChains}
+              disabled={isLoading}
+              className={cn(
+                'p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
+                isLoading && 'animate-spin'
+              )}
+              title="Refresh chains"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </CardHeader>
 

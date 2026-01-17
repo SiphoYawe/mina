@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { useMina } from '@/app/providers';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
+import { useSettingsStore } from '@/lib/stores/settings-store';
 import type { Quote, QuoteParams } from '@siphoyawe/mina-sdk';
 
 const HYPEREVM_CHAIN_ID = 999;
@@ -47,7 +48,7 @@ interface UseBridgeQuoteReturn {
  * - Integrates with Zustand bridge store
  */
 export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQuoteReturn {
-  const { autoDeposit = true, slippage } = options;
+  const { autoDeposit = true, slippage: slippageOverride } = options;
   const { mina, isReady } = useMina();
   const { address, isConnected } = useAppKitAccount();
 
@@ -59,6 +60,17 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
       amount: state.amount,
     }))
   );
+
+  // Get settings from settings store
+  const { slippage: settingsSlippage, routePreference } = useSettingsStore(
+    useShallow((state) => ({
+      slippage: state.slippage,
+      routePreference: state.routePreference,
+    }))
+  );
+
+  // Use override slippage if provided, otherwise use settings store value
+  const slippage = slippageOverride ?? settingsSlippage;
 
   // Debounced amount state
   const [debouncedAmount, setDebouncedAmount] = useState(amount);
@@ -105,6 +117,7 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
     address,
     autoDeposit,
     slippage,
+    routePreference,
   ];
 
   // Parse amount to smallest unit (wei)
@@ -152,7 +165,8 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
         toToken: USDC_HYPEREVM,
         fromAmount: fromAmountWei,
         fromAddress: address,
-        ...(slippage !== undefined && { slippage }),
+        slippageTolerance: slippage,
+        routePreference,
       };
 
       const fetchedQuote = await mina.getQuote(params);
