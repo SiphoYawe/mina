@@ -43,8 +43,8 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content */}
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+      {/* Content - DIALOG-004 Fix: Use items-start with scroll for tall dialogs */}
+      <div className="fixed inset-0 flex items-start justify-center py-6 px-4 overflow-y-auto">
         {children}
       </div>
     </div>
@@ -68,9 +68,8 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
           'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg',
           // DIALOG-003 Fix: Better responsive sizing
           'max-w-[calc(100vw-2rem)]',
-          // DIALOG-001 Fix: Proper max-height with scrolling for tall content
-          'max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)]',
-          'overflow-y-auto overflow-x-hidden',
+          // DIALOG-004 Fix: Removed max-height - outer container handles scrolling
+          // This allows dialog to be fully visible and scrollable from parent
           // Entrance animation
           'animate-in fade-in zoom-in-95 duration-200',
           className

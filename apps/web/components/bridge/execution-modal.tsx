@@ -743,7 +743,7 @@ function ExecutingContent({
   const stepLabels = ['Approve', 'Swap', 'Bridge', 'Deposit'];
 
   return (
-    <DialogBody className="relative overflow-hidden">
+    <DialogBody className="relative overflow-hidden py-3 sm:py-4">
       {/* Atmospheric background glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
@@ -757,8 +757,8 @@ function ExecutingContent({
 
       {/* Hero Globe Container */}
       <div className="relative flex flex-col items-center">
-        {/* Globe Visualization - HERO SIZE */}
-        <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] md:w-[360px] md:h-[360px]">
+        {/* Globe Visualization - HERO SIZE (DIALOG-004 Fix: Reduced mobile size to prevent cutoff) */}
+        <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px]">
           {/* Outer glow ring */}
           <div
             className="absolute inset-0 rounded-full animate-pulse"
@@ -818,7 +818,7 @@ function ExecutingContent({
         </div>
 
         {/* Current Step Indicator */}
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
           <p className="text-body text-text-primary font-medium">
             {currentStep?.message || 'Processing...'}
           </p>
@@ -829,7 +829,7 @@ function ExecutingContent({
       </div>
 
       {/* Compact Horizontal Stepper */}
-      <div className="mt-6 px-2">
+      <div className="mt-4 px-2">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const isCompleted = step.status === 'completed';
@@ -891,7 +891,7 @@ function ExecutingContent({
       </div>
 
       {/* Minimal warning */}
-      <p className="mt-4 text-caption text-text-muted text-center opacity-60">
+      <p className="mt-3 text-caption text-text-muted text-center opacity-60">
         Keep this window open while bridging
       </p>
     </DialogBody>
