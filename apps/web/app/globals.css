@@ -91,6 +91,12 @@
     @apply bg-gradient-to-r from-accent-primary to-accent-hover bg-clip-text text-transparent;
   }
 
+  /* Vertical gradient text - fades from top to bottom */
+  .text-gradient-vertical {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(to bottom, var(--accent-primary) 0%, var(--accent-primary) 40%, rgba(125, 211, 252, 0.4) 100%);
+  }
+
   /* Hide scrollbar */
   .no-scrollbar::-webkit-scrollbar {
     display: none;

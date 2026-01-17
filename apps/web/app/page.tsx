@@ -7,9 +7,7 @@ import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 import { Spotlight } from '@/components/ui/spotlight';
-import { cn } from '@/lib/utils';
 
 /**
  * Issue 7 fix: Fallback UI for BridgeForm error boundary
@@ -44,20 +42,8 @@ function BridgeFormErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 export default function Home() {
   return (
     <main className="relative min-h-screen bg-bg-base overflow-hidden">
-      {/* Animated Grid Background */}
-      <AnimatedGridPattern
-        numSquares={30}
-        maxOpacity={0.08}
-        duration={3}
-        repeatDelay={1}
-        className={cn(
-          '[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]',
-          'inset-x-0 inset-y-[-30%] h-[200%] skew-y-12'
-        )}
-      />
-
       {/* Header */}
-      <header className="relative z-10 border-b border-border-subtle">
+      <header className="relative z-10 border-b border-border-default/40 bg-bg-elevated/50 backdrop-blur-2xl backdrop-saturate-150">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src="/mina-logo.svg" alt="Mina" className="h-8" />
           <ConnectButton />
@@ -69,10 +55,12 @@ export default function Home() {
         {/* Spotlight Effect */}
         <Spotlight />
 
-        <h1 className="relative z-20 text-h1 text-text-primary mb-4">
-          Bridge to <span className="text-gradient">Hyperliquid</span>
+        <h1 className="relative z-20 text-text-primary mb-6 text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+          Bridge to
+          <br />
+          <span className="text-gradient-vertical">Hyperliquid</span>
         </h1>
-        <p className="relative z-20 text-body text-text-secondary max-w-2xl mx-auto mb-8">
+        <p className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-10">
           Seamlessly bridge assets from 40+ chains directly to your Hyperliquid trading account.
           One click, zero hassle.
         </p>

@@ -107,7 +107,7 @@ export function AnimatedGridPattern({
       ref={containerRef}
       aria-hidden="true"
       className={cn(
-        'pointer-events-none absolute inset-0 h-full w-full fill-border-subtle/30 stroke-border-subtle/30',
+        'pointer-events-none absolute inset-0 h-full w-full fill-border-subtle/60 stroke-border-subtle/60',
         className
       )}
       {...props}
@@ -130,7 +130,7 @@ export function AnimatedGridPattern({
       </defs>
       <rect width="100%" height="100%" fill={`url(#${id})`} />
       <svg x={x} y={y} className="overflow-visible">
-        {squares.map(({ pos: [posX, posY], id: squareId }, index) => (
+        {squares.map(({ pos: [posX = 0, posY = 0], id: squareId }, index) => (
           <motion.rect
             initial={{ opacity: 0 }}
             animate={{ opacity: maxOpacity }}
@@ -148,7 +148,7 @@ export function AnimatedGridPattern({
             y={posY * height + 1}
             fill="currentColor"
             strokeWidth="0"
-            className="text-border-default/40"
+            className="text-border-default/70"
           />
         ))}
       </svg>
