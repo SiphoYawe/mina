@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2, AlertTriangle, XCircle } from 'lucide-react';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
@@ -12,6 +12,7 @@ import { BalanceWarning } from './balance-warning';
 import { AutoDepositToggle } from './auto-deposit-toggle';
 import { ExecutionModal } from './execution-modal';
 import { SettingsPanel } from './settings-panel';
+import { BridgeModeToggle } from './bridge-mode-toggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -257,6 +258,7 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
  * - Balance refresh after network switch
  */
 export function BridgeForm() {
+  const { open: openWalletModal } = useAppKit();
   const { isConnected } = useAppKitAccount();
   const walletChainId = useChainId();
   const { chains, isLoading, error, refreshChains, failureCount, maxRetries } = useChains();
@@ -277,8 +279,9 @@ export function BridgeForm() {
 
   // Issue 2 fix: Use useShallow for state to batch subscriptions
   // Actions are stable references and can be selected directly - no need for getState()
-  const { sourceChain, sourceToken, amount, setSourceChain, setSourceToken, setAmount } = useBridgeStore(
+  const { mode, sourceChain, sourceToken, amount, setSourceChain, setSourceToken, setAmount } = useBridgeStore(
     useShallow((state) => ({
+      mode: state.mode,
       sourceChain: state.sourceChain,
       sourceToken: state.sourceToken,
       amount: state.amount,
@@ -287,6 +290,9 @@ export function BridgeForm() {
       setAmount: state.setAmount,
     }))
   );
+
+  // Determine if we're in simulation mode
+  const isSimulateMode = mode === 'simulate';
 
   // Get Mina SDK for token fetching
   const { mina, isReady: isMinaReady } = useMina();
@@ -621,11 +627,17 @@ export function BridgeForm() {
 
   // Determine if bridge button should be disabled
   const hasBalanceIssue = Boolean(quote && !isBalanceValid);
-  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !sourceToken || isLoadingTokens || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
+
+  // In simulate mode, button is enabled when we have valid form data (chain, token, amount)
+  // In bridge mode, we need wallet connected and balance validation
+  const isSimulateButtonDisabled = !sourceChain || !sourceToken || isLoadingTokens || !amount;
+  const isBridgeButtonDisabled = !isConnected || !sourceChain || needsSwitch || !sourceToken || isLoadingTokens || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
+
+  const isBridgeDisabled = isSimulateMode ? isSimulateButtonDisabled : isBridgeButtonDisabled;
 
   return (
     <Card className="max-w-md mx-auto">
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
           <CardTitle>Bridge Assets</CardTitle>
           {/* Settings and Refresh buttons */}
@@ -644,11 +656,13 @@ export function BridgeForm() {
             </button>
           </div>
         </div>
+        {/* Bridge/Simulate Mode Toggle */}
+        <BridgeModeToggle />
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Network Switch Prompt - Enhanced with current vs target chain display */}
-        {showNetworkPrompt && (
+        {/* Network Switch Prompt - Only shown in Bridge mode (not Simulate) */}
+        {!isSimulateMode && showNetworkPrompt && (
           <NetworkSwitchPrompt
             targetChain={targetChain}
             onDismiss={handlePromptDismiss}
@@ -657,8 +671,8 @@ export function BridgeForm() {
           />
         )}
 
-        {/* Dismissed prompt warning (shows inline if user dismissed) */}
-        {targetChain && isDismissed && (
+        {/* Dismissed prompt warning - Only in Bridge mode */}
+        {!isSimulateMode && targetChain && isDismissed && (
           <div className="flex items-center gap-2 p-2 rounded-lg bg-bg-elevated border border-border-subtle">
             <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" />
             <span className="text-caption text-text-muted">
@@ -682,8 +696,8 @@ export function BridgeForm() {
             chains={chains}
             isLoading={isLoading}
             error={error}
-            disabled={!isConnected}
-            placeholder={isConnected ? 'Select source chain' : 'Connect wallet first'}
+            disabled={false}
+            placeholder="Select source chain"
             onRetry={refreshChains}
             failureCount={failureCount}
             maxRetries={maxRetries}
@@ -708,7 +722,7 @@ export function BridgeForm() {
               inputMode="decimal"
               value={amount}
               onChange={handleAmountChange}
-              disabled={!sourceChain || needsSwitch || !sourceToken}
+              disabled={!sourceChain || (!isSimulateMode && needsSwitch) || !sourceToken}
               className="flex-1"
               aria-label="Bridge amount"
             />
@@ -717,7 +731,7 @@ export function BridgeForm() {
               onChange={handleTokenChange}
               tokens={availableTokens}
               isLoading={isLoadingTokens}
-              disabled={!sourceChain || needsSwitch}
+              disabled={!sourceChain || (!isSimulateMode && needsSwitch)}
               placeholder="Token"
             />
           </div>
@@ -753,8 +767,8 @@ export function BridgeForm() {
         {/* QUOTE-003: Alternative Routes Display */}
         {quote && <AlternativeRoutesDisplay quote={quote} />}
 
-        {/* Balance Warnings */}
-        {quote && warnings.length > 0 && (
+        {/* Balance Warnings - Only shown in Bridge mode */}
+        {!isSimulateMode && quote && warnings.length > 0 && (
           <BalanceWarning warnings={warnings} />
         )}
 
@@ -769,16 +783,26 @@ export function BridgeForm() {
 
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
-          show={Boolean(isBridgeDisabled && isConnected && !isExecuting)}
+          show={Boolean(!isSimulateMode && isBridgeDisabled && isConnected && !isExecuting)}
           message={getTooltipMessage()}
         >
           <Button
             className="w-full hover:shadow-glow"
             size="lg"
             disabled={isBridgeDisabled}
-            onClick={handleBridge}
+            onClick={isSimulateMode ? () => openWalletModal() : handleBridge}
           >
-            {!isConnected
+            {isSimulateMode
+              ? !sourceChain
+                ? 'Select Chain'
+                : !sourceToken
+                ? 'Select Token'
+                : !amount
+                ? 'Enter Amount'
+                : isQuoteLoading
+                ? 'Getting Quote...'
+                : 'Connect to Bridge'
+              : !isConnected
               ? 'Connect Wallet'
               : isExecuting
               ? (
@@ -806,14 +830,14 @@ export function BridgeForm() {
         </BridgeButtonTooltip>
 
         {/* Info Text */}
-        {isConnected && sourceChain && !needsSwitch && (
+        {sourceChain && (isSimulateMode || (isConnected && !needsSwitch)) && (
           <p className="text-center text-caption text-text-muted">
-            Bridging from {sourceChain.name} to HyperEVM
+            {isSimulateMode ? 'Simulating bridge' : 'Bridging'} from {sourceChain.name} to HyperEVM
           </p>
         )}
 
-        {/* Network mismatch warning when dismissed */}
-        {isConnected && needsSwitch && isDismissed && (
+        {/* Network mismatch warning when dismissed - Bridge mode only */}
+        {!isSimulateMode && isConnected && needsSwitch && isDismissed && (
           <p className="text-center text-caption text-warning">
             Switch to {sourceChain?.name} to continue
           </p>
