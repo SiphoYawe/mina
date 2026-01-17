@@ -55,10 +55,21 @@ export const CHAIN_COORDINATES: Record<number, ChainCoordinates> = {
 }
 
 /**
- * Get coordinates for a chain
+ * Default coordinates for unmapped chains (centered Atlantic Ocean)
+ * This ensures globe visualization works even for chains without explicit coordinates
  */
-export function getChainCoordinates(chainId: number): ChainCoordinates | null {
-  return CHAIN_COORDINATES[chainId] || null
+const DEFAULT_COORDINATES: ChainCoordinates = {
+  name: 'Unknown Chain',
+  lat: 30,
+  lng: -40,
+}
+
+/**
+ * Get coordinates for a chain
+ * Returns default coordinates for unmapped chains to ensure globe visualization works
+ */
+export function getChainCoordinates(chainId: number): ChainCoordinates {
+  return CHAIN_COORDINATES[chainId] || { ...DEFAULT_COORDINATES, name: `Chain ${chainId}` }
 }
 
 /**

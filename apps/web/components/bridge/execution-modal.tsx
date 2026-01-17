@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw, WifiOff, TrendingUp, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ConfettiCelebration } from '@/components/shared/confetti';
@@ -23,6 +24,19 @@ import { cn } from '@/lib/utils';
 import { useAccount } from 'wagmi';
 import { chainConfigs } from '@/lib/config/chain-configs';
 import { usePearAuth } from '@/lib/pear';
+
+// Lazy load globe visualization to avoid bundle bloat (Story 9.6)
+const GlobeVisualization = dynamic(
+  () => import('./globe-visualization').then(mod => mod.GlobeVisualization),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-square max-w-[200px] mx-auto flex items-center justify-center bg-bg-base rounded-lg">
+        <div className="w-16 h-16 rounded-full bg-accent-primary/10 animate-pulse" />
+      </div>
+    ),
+  }
+);
 
 /**
  * Comprehensive Explorer URLs by chain ID
@@ -710,7 +724,11 @@ function getRecoverySuggestion(action: string): string {
 }
 
 /**
- * Executing state content
+ * Executing state content with Globe Visualization (Story 9.6)
+ *
+ * Layout:
+ * - Desktop: Globe on left, stepper on right
+ * - Mobile: Globe on top, stepper below
  */
 function ExecutingContent({
   steps,
@@ -724,7 +742,7 @@ function ExecutingContent({
   return (
     <DialogBody>
       {/* Progress bar */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex justify-between text-caption text-text-muted mb-2">
           <span>Progress</span>
           <span>{progress}%</span>
@@ -737,11 +755,25 @@ function ExecutingContent({
         </div>
       </div>
 
-      {/* Stepper */}
-      <ExecutionStepper steps={steps} currentStepIndex={currentStepIndex} />
+      {/* Globe + Stepper Layout (responsive) */}
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        {/* Globe Visualization */}
+        <div className="w-full md:w-1/2 flex-shrink-0">
+          <div className="aspect-square max-w-[220px] mx-auto md:max-w-none">
+            <GlobeVisualization
+              className="w-full h-full rounded-lg overflow-hidden"
+            />
+          </div>
+        </div>
+
+        {/* Stepper */}
+        <div className="w-full md:w-1/2 flex flex-col justify-center">
+          <ExecutionStepper steps={steps} currentStepIndex={currentStepIndex} />
+        </div>
+      </div>
 
       {/* Warning message */}
-      <div className="mt-6 p-3 rounded-lg bg-bg-elevated border border-border-subtle">
+      <div className="mt-4 p-3 rounded-lg bg-bg-elevated border border-border-subtle">
         <p className="text-caption text-text-muted text-center">
           Please do not close this window while the transaction is in progress.
           This may take a few minutes.
@@ -884,10 +916,13 @@ export function ExecutionModal({
   // Determine if modal can be closed
   const canClose = status !== 'executing' && status !== 'pending' && !isRetrying;
 
+  // Use wider dialog when executing to accommodate globe + stepper
+  const isWideMode = status === 'executing' || status === 'pending' || isRetrying;
+
   return (
     <Dialog open={isModalOpen} onOpenChange={canClose ? closeModal : () => {}}>
       <DialogContent
-        className="max-w-lg"
+        className={cn('max-w-lg', isWideMode && 'md:max-w-2xl')}
         onClose={canClose ? handleClose : undefined}
         showCloseButton={canClose}
       >

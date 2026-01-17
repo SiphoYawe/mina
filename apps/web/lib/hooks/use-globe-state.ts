@@ -1,10 +1,10 @@
+'use client'
+
 /**
  * Globe State Hook
  *
  * Derives globe visualization state from transaction store
  */
-
-'use client'
 
 import { useMemo } from 'react'
 import { useTransactionStore } from '@/lib/stores/transaction-store'
