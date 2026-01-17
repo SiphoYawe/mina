@@ -43,10 +43,21 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content container - DIALOG-005 Fix: Flexbox centering with proper scroll */}
-      <div className="fixed inset-0 flex items-start justify-center overflow-y-auto py-8 px-4">
-        <div className="flex items-center justify-center min-h-full w-full">
-          {children}
+      {/* Content container - DIALOG-006 Fix: Flexbox centering with my-auto to prevent top clipping */}
+      <div
+        className="fixed inset-0 z-50 overflow-y-auto"
+        onClick={(e) => {
+           // Close if clicking the backdrop (the scroll container)
+           if (e.target === e.currentTarget) onOpenChange(false);
+        }}
+      >
+        <div className="flex min-h-full w-full justify-center p-4 text-center">
+          <div className="my-auto w-full flex justify-center pointer-events-none">
+            {/* Wrapper allows clicks to pass through to backdrop, but content catches them. */}
+            <div className="pointer-events-auto w-full flex justify-center">
+               {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>
