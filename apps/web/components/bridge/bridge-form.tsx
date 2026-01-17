@@ -152,7 +152,7 @@ function TokenLoadError({ onRetry, isRetrying }: { onRetry: () => void; isRetryi
  * Exchange rate display component (QUOTE-002)
  * Shows the conversion rate between source and destination tokens
  */
-function ExchangeRateDisplay({ quote }: { quote: Quote }) {
+function ExchangeRateDisplay({ quote, className }: { quote: Quote; className?: string }) {
   // Calculate exchange rate: toAmount / fromAmount (adjusted for decimals)
   const rate = useMemo(() => {
     const fromAmountNum = parseFloat(quote.fromAmount) / Math.pow(10, quote.fromToken.decimals);
@@ -175,7 +175,7 @@ function ExchangeRateDisplay({ quote }: { quote: Quote }) {
   if (!rate) return null;
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg-surface/50 border border-border-subtle">
+    <div className={cn("flex items-center justify-between px-3 py-2 rounded-lg bg-bg-surface/50 border border-border-subtle", className)}>
       <span className="text-caption text-text-muted">Exchange Rate</span>
       <span className="text-small text-text-secondary font-medium">
         1 {quote.fromToken.symbol} ≈ {rate} {quote.toToken.symbol}
@@ -865,7 +865,7 @@ export function BridgeForm() {
         </div>
 
         {/* QUOTE-002: Exchange Rate Display */}
-        {quote && <ExchangeRateDisplay quote={quote} />}
+        {quote && <ExchangeRateDisplay quote={quote} className="mt-2" />}
 
         {/* QUOTE-003: Alternative Routes Display */}
         {quote && <AlternativeRoutesDisplay quote={quote} />}

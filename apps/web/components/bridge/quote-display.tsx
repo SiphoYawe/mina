@@ -82,7 +82,7 @@ function formatTime(seconds: number): string {
  */
 function QuoteSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4 mb-6">
       {/* Output amount skeleton */}
       <div className="p-4 rounded-xl bg-bg-elevated/50 border border-border-subtle">
         <div className="flex items-center justify-between">
@@ -384,7 +384,7 @@ export function QuoteDisplay({
   const showHighImpactWarning = quote.highImpact;
 
   return (
-    <div className={cn('space-y-4 relative', className)}>
+    <div className={cn('space-y-4 relative mb-6', className)}>
       {/* High price impact warning banner */}
       {showHighImpactWarning && (
         <div className="flex items-center gap-3 p-3 rounded-xl border border-warning/30 bg-warning/5">
