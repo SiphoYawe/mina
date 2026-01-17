@@ -1,17 +1,19 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
-import { Mina, type MinaConfig } from '@siphoyawe/mina-sdk';
+import type { ReactNode } from 'react';
+import {
+  MinaProvider as SDKMinaProvider,
+  useMina as useSDKMina,
+  type MinaConfig,
+} from '@siphoyawe/mina-sdk/react';
 import { WalletProvider } from './providers/wallet-provider';
 import type { State } from 'wagmi';
 
-interface MinaContextValue {
-  mina: Mina | null;
-  isReady: boolean;
-  error: Error | null;
-}
+// Re-export useMina from SDK for components to use
+export { useSDKMina as useMina };
 
-const MinaContext = createContext<MinaContextValue | null>(null);
+// Re-export types for convenience
+export type { MinaConfig, MinaContextValue } from '@siphoyawe/mina-sdk/react';
 
 const defaultConfig: MinaConfig = {
   integrator: 'mina-bridge',
@@ -19,48 +21,18 @@ const defaultConfig: MinaConfig = {
   defaultSlippage: 0.005, // 0.5%
 };
 
-interface MinaProviderInnerProps {
-  config?: MinaConfig;
-  children: ReactNode;
-}
-
-function MinaProviderInner({
-  config = defaultConfig,
-  children,
-}: MinaProviderInnerProps) {
-  const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  // Issue 6 Fix: Use JSON.stringify for stable dependency comparison
-  const configString = JSON.stringify(config);
-  const mina = useMemo(() => {
-    try {
-      return new Mina(JSON.parse(configString) as MinaConfig);
-    } catch (e) {
-      setError(e as Error);
-      return null;
-    }
-  }, [configString]);
-
-  useEffect(() => {
-    if (mina) {
-      setIsReady(true);
-    }
-  }, [mina]);
-
-  return (
-    <MinaContext.Provider value={{ mina, isReady, error }}>
-      {children}
-    </MinaContext.Provider>
-  );
-}
-
 interface MinaProviderProps {
   config?: MinaConfig;
   initialWagmiState?: State;
   children: ReactNode;
 }
 
+/**
+ * Application-level provider that combines Mina SDK with wallet integration
+ *
+ * This wraps the SDK's MinaProvider with the WalletProvider for wallet connection
+ * functionality via Reown AppKit.
+ */
 export function MinaProvider({
   config = defaultConfig,
   initialWagmiState,
@@ -68,17 +40,9 @@ export function MinaProvider({
 }: MinaProviderProps) {
   return (
     <WalletProvider initialState={initialWagmiState}>
-      <MinaProviderInner config={config}>
+      <SDKMinaProvider config={config}>
         {children}
-      </MinaProviderInner>
+      </SDKMinaProvider>
     </WalletProvider>
   );
-}
-
-export function useMina() {
-  const context = useContext(MinaContext);
-  if (!context) {
-    throw new Error('useMina must be used within a MinaProvider');
-  }
-  return context;
 }
