@@ -43,9 +43,9 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content container - centers dialog with safe scroll */}
-      <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="my-auto">
+      {/* Content container - DIALOG-005 Fix: Flexbox centering with proper scroll */}
+      <div className="fixed inset-0 flex items-start justify-center overflow-y-auto py-8 px-4">
+        <div className="flex items-center justify-center min-h-full w-full">
           {children}
         </div>
       </div>

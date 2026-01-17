@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useAccount } from 'wagmi';
 import { Copy, Check, ChevronDown, LogOut, ExternalLink } from 'lucide-react';
@@ -12,6 +12,53 @@ import { copyToClipboard } from '@/lib/utils/share';
 // Helper to truncate address
 const truncateAddress = (address: string) =>
   `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+/**
+ * Explorer URLs by chain ID for address lookups
+ * WALLET-004 Fix: Don't rely on wagmi chain.blockExplorers - use explicit mapping
+ */
+const ADDRESS_EXPLORER_URLS: Record<number, string> = {
+  // Major L1s
+  1: 'https://etherscan.io/address/',
+  56: 'https://bscscan.com/address/',
+  137: 'https://polygonscan.com/address/',
+  250: 'https://ftmscan.com/address/',
+  43114: 'https://snowtrace.io/address/',
+  100: 'https://gnosisscan.io/address/',
+  42220: 'https://celoscan.io/address/',
+  1313161554: 'https://aurorascan.dev/address/',
+  1284: 'https://moonscan.io/address/',
+  1285: 'https://moonriver.moonscan.io/address/',
+
+  // L2s and Rollups
+  10: 'https://optimistic.etherscan.io/address/',
+  42161: 'https://arbiscan.io/address/',
+  8453: 'https://basescan.org/address/',
+  324: 'https://explorer.zksync.io/address/',
+  59144: 'https://lineascan.build/address/',
+  534352: 'https://scrollscan.com/address/',
+  5000: 'https://explorer.mantle.xyz/address/',
+  1088: 'https://andromeda-explorer.metis.io/address/',
+  1101: 'https://zkevm.polygonscan.com/address/',
+  81457: 'https://blastscan.io/address/',
+  34443: 'https://explorer.mode.network/address/',
+  7777777: 'https://explorer.zora.energy/address/',
+
+  // HyperEVM
+  998: 'https://explorer.hyperliquid-testnet.xyz/address/',
+  999: 'https://explorer.hyperliquid.xyz/address/',
+};
+
+/**
+ * Get explorer URL for an address based on chain ID
+ */
+function getAddressExplorerUrl(chainId: number | undefined, address: string): string {
+  if (chainId && ADDRESS_EXPLORER_URLS[chainId]) {
+    return `${ADDRESS_EXPLORER_URLS[chainId]}${address}`;
+  }
+  // Fallback to Etherscan
+  return `https://etherscan.io/address/${address}`;
+}
 
 // WALLET-003: Keys to clean up on disconnect
 const WALLET_STORAGE_KEYS_TO_CLEAN = [
@@ -181,7 +228,8 @@ export function ConnectButton({
   // Connected state button
   if (isConnected && address) {
     return (
-      <div className="relative" ref={dropdownRef}>
+      // WALLET-005 Fix: Use isolate to create new stacking context for dropdown
+      <div className="relative isolate z-50" ref={dropdownRef}>
         {/* Connected Button */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -252,12 +300,15 @@ export function ConnectButton({
                 </span>
               </button>
 
-              {/* View on Explorer */}
+              {/* View on Explorer - WALLET-004 Fix: Use explicit explorer URL mapping */}
               <a
-                href={`${chain?.blockExplorers?.default?.url || 'https://etherscan.io'}/address/${address}`}
+                href={getAddressExplorerUrl(chain?.id, address)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setIsDropdownOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDropdownOpen(false);
+                }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-micro"
               >
                 <ExternalLink className="w-4 h-4" />
