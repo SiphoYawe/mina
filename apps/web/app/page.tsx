@@ -1,13 +1,13 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { SdkStatus } from '@/components/sdk-status';
 import { ConnectButton } from '@/components/wallet/connect-button';
 import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spotlight } from '@/components/ui/spotlight';
+import { motion } from 'motion/react';
 
 /**
  * Issue 7 fix: Fallback UI for BridgeForm error boundary
@@ -55,28 +55,47 @@ export default function Home() {
         {/* Spotlight Effect */}
         <Spotlight />
 
-        <h1 className="relative z-20 text-text-primary mb-6 text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="relative z-20 text-text-primary mb-6 text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight"
+        >
           Bridge to
           <br />
           <span className="text-gradient-vertical">Hyperliquid</span>
-        </h1>
-        <p className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-10">
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-10"
+        >
           Seamlessly bridge assets from 40+ chains directly to your Hyperliquid trading account.
           One click, zero hassle.
-        </p>
+        </motion.p>
 
         {/* Issue 7 fix: Bridge Form wrapped with Error Boundary */}
-        <ErrorBoundary FallbackComponent={BridgeFormErrorFallback}>
-          <BridgeForm />
-        </ErrorBoundary>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          <ErrorBoundary FallbackComponent={BridgeFormErrorFallback}>
+            <BridgeForm />
+          </ErrorBoundary>
+        </motion.div>
 
         {/* Recent Transactions */}
-        <div className="max-w-md mx-auto mt-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="max-w-md mx-auto mt-8"
+        >
           <RecentTransactions maxItems={5} />
-        </div>
+        </motion.div>
 
-        {/* SDK Status */}
-        <SdkStatus />
       </section>
 
     </main>
