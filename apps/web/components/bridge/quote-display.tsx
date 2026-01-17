@@ -384,7 +384,7 @@ export function QuoteDisplay({
   const showHighImpactWarning = quote.highImpact;
 
   return (
-    <div className={cn('space-y-4 relative mb-6', className)}>
+    <div className={cn('space-y-4 relative mb-10', className)}>
       {/* High price impact warning banner */}
       {showHighImpactWarning && (
         <div className="flex items-center gap-3 p-3 rounded-xl border border-warning/30 bg-warning/5">
