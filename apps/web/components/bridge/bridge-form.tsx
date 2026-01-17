@@ -658,6 +658,8 @@ export function BridgeForm() {
         stepId: step.id,
         step: step.type,
         status: 'active',
+        txHash: null,
+        error: null,
         timestamp: Date.now(),
       });
 
@@ -667,8 +669,9 @@ export function BridgeForm() {
         stepId: step.id,
         step: step.type,
         status: 'completed',
-        timestamp: Date.now(),
         txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        error: null,
+        timestamp: Date.now(),
       });
     }
 
