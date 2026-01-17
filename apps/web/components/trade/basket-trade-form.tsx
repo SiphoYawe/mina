@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useBasketTrade, usePearAuth } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface BasketTradeFormProps {
@@ -22,6 +23,8 @@ const AVAILABLE_ASSETS = ['BTC', 'ETH', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'A
 export function BasketTradeForm({ className }: BasketTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { executeBasketTrade, isLoading: isTrading } = useBasketTrade();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
 
   // Form state
   const [longAssets, setLongAssets] = useState<AssetWeight[]>([
@@ -94,7 +97,8 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
     }
   };
 
-  if (!isAuthenticated) {
+  // In simulation mode, bypass authentication requirement
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -224,13 +228,18 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
           <Button
             className="w-full"
             size="lg"
-            onClick={handleTrade}
+            onClick={isSimulateMode ? undefined : handleTrade}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Executing Basket Trade...
+              </>
+            ) : isSimulateMode ? (
+              <>
+                <Package className="w-4 h-4 mr-2" />
+                Simulate Basket Position
               </>
             ) : (
               <>
@@ -242,6 +251,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
 
           {/* Summary */}
           <div className="text-caption text-text-muted text-center space-y-1">
+            {isSimulateMode && <p className="text-accent-primary">[Simulation]</p>}
             <p>
               Long: {longAssets.map(a => `${a.asset} (${(a.weight * 100).toFixed(0)}%)`).join(', ')}
             </p>

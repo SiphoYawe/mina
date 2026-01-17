@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSingleAssetTrade, usePearAuth } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface SingleAssetTradeFormProps {
@@ -17,6 +18,8 @@ const AVAILABLE_ASSETS = ['BTC', 'ETH', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'A
 export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { executeSingleTrade, isLoading: isTrading } = useSingleAssetTrade();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
 
   // Form state
   const [asset, setAsset] = useState('BTC');
@@ -47,7 +50,8 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
     }
   };
 
-  if (!isAuthenticated) {
+  // In simulation mode, bypass authentication requirement
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -223,13 +227,18 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
           <Button
             className={cn('w-full', direction === 'long' ? '' : 'bg-error hover:bg-error/90')}
             size="lg"
-            onClick={handleTrade}
+            onClick={isSimulateMode ? undefined : handleTrade}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Opening Position...
+              </>
+            ) : isSimulateMode ? (
+              <>
+                {direction === 'long' ? <TrendingUp className="w-4 h-4 mr-2" /> : <TrendingDown className="w-4 h-4 mr-2" />}
+                Simulate {direction === 'long' ? 'Long' : 'Short'} {asset}
               </>
             ) : direction === 'long' ? (
               <>
@@ -246,6 +255,7 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
 
           {/* Info */}
           <p className="text-caption text-text-muted text-center">
+            {isSimulateMode && <span className="text-accent-primary">[Simulation] </span>}
             {direction === 'long' ? 'Long' : 'Short'} {asset} with {leverage}x leverage
             {enableSL && ` • SL: ${slPercent}%`}
             {enableTP && ` • TP: ${tpPercent}%`}

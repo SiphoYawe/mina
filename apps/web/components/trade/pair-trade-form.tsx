@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePearMarkets, usePairTrade, usePearAuth } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface PairTradeFormProps {
@@ -16,6 +17,8 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { data: marketsData, isLoading: marketsLoading } = usePearMarkets({ pageSize: 20 });
   const { executePairTrade, isLoading: isTrading } = usePairTrade();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
 
   // Form state
   const [longAsset, setLongAsset] = useState('BTC');
@@ -46,7 +49,8 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
     }
   };
 
-  if (!isAuthenticated) {
+  // In simulation mode, bypass authentication requirement
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -204,13 +208,18 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
           <Button
             className="w-full"
             size="lg"
-            onClick={handleTrade}
+            onClick={isSimulateMode ? undefined : handleTrade}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Executing Trade...
+              </>
+            ) : isSimulateMode ? (
+              <>
+                <ArrowLeftRight className="w-4 h-4 mr-2" />
+                Simulate {longAsset}/{shortAsset} Position
               </>
             ) : (
               <>
@@ -222,6 +231,7 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
 
           {/* Info */}
           <p className="text-caption text-text-muted text-center">
+            {isSimulateMode && <span className="text-accent-primary">[Simulation] </span>}
             Going long {longAsset} / short {shortAsset} with {leverage}x leverage
           </p>
         </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, TrendingUp, TrendingDown, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePearPositions, useClosePosition, usePearAuth, type Position } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface PositionsSidebarProps {
@@ -132,8 +133,11 @@ function PositionCard({ position, onClose }: { position: Position; onClose: () =
 export function PositionsSidebar({ className }: PositionsSidebarProps) {
   const { isAuthenticated } = usePearAuth();
   const { data: positions, isLoading, error, refetch } = usePearPositions();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
 
-  if (!isAuthenticated) {
+  // In simulation mode, show empty positions state instead of auth prompt
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <div className={cn('bg-bg-surface rounded-card p-4', className)}>
         <h3 className="text-body font-semibold text-text-primary mb-4">Open Positions</h3>
@@ -141,6 +145,24 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-text-muted" />
           <p className="text-small text-text-muted">
             Sign in to view positions
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // In simulation mode without auth, show simulated empty state
+  if (!isAuthenticated && isSimulateMode) {
+    return (
+      <div className={cn('bg-bg-surface rounded-card p-4', className)}>
+        <h3 className="text-body font-semibold text-text-primary mb-4">
+          Open Positions <span className="text-accent-primary text-caption">[Simulation]</span>
+        </h3>
+        <div className="text-center py-8">
+          <TrendingUp className="w-8 h-8 mx-auto mb-2 text-text-muted" />
+          <p className="text-small text-text-muted">No simulated positions</p>
+          <p className="text-caption text-text-muted mt-1">
+            Positions will appear here in simulation mode
           </p>
         </div>
       </div>
