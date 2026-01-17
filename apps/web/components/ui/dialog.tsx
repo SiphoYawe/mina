@@ -43,22 +43,14 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content container - DIALOG-006 Fix: Flexbox centering with my-auto to prevent top clipping */}
+      {/* Content container - DIALOG-007 Fix: Fully dynamic centering with CSS Grid */}
       <div
-        className="fixed inset-0 z-50 overflow-y-auto"
+        className="fixed inset-0 z-50 grid place-items-center overflow-y-auto overscroll-contain"
         onClick={(e) => {
-           // Close if clicking the backdrop (the scroll container)
-           if (e.target === e.currentTarget) onOpenChange(false);
+          if (e.target === e.currentTarget) onOpenChange(false);
         }}
       >
-        <div className="flex min-h-full w-full justify-center px-4 py-12 sm:py-16 text-center">
-          <div className="my-auto w-full flex justify-center pointer-events-none">
-            {/* Wrapper allows clicks to pass through to backdrop, but content catches them. */}
-            <div className="pointer-events-auto w-full flex justify-center">
-               {children}
-            </div>
-          </div>
-        </div>
+        {children}
       </div>
     </div>
   );
@@ -78,11 +70,9 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         ref={ref}
         className={cn(
           // Base styles
-          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg',
-          // DIALOG-003 Fix: Better responsive sizing
-          'max-w-[calc(100vw-2rem)]',
-          // DIALOG-004 Fix: Removed max-height - outer container handles scrolling
-          // This allows dialog to be fully visible and scrollable from parent
+          'relative bg-bg-surface border border-border-default rounded-card shadow-lg',
+          // DIALOG-007 Fix: Dynamic sizing with safe viewport margins
+          'm-4 w-[calc(100%-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto',
           // Entrance animation
           'animate-in fade-in zoom-in-95 duration-200',
           className
