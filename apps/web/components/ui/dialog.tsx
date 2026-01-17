@@ -51,7 +51,7 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
            if (e.target === e.currentTarget) onOpenChange(false);
         }}
       >
-        <div className="flex min-h-full w-full justify-center p-4 text-center">
+        <div className="flex min-h-full w-full justify-center px-4 py-12 sm:py-16 text-center">
           <div className="my-auto w-full flex justify-center pointer-events-none">
             {/* Wrapper allows clicks to pass through to backdrop, but content catches them. */}
             <div className="pointer-events-auto w-full flex justify-center">
