@@ -197,7 +197,7 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
             Retry
           </Button>
         </div>
-      ) : (
+      ) : positions ? (
         <div className="space-y-3 max-h-[500px] overflow-y-auto">
           {positions.map((position) => (
             <PositionCard
@@ -207,7 +207,7 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
             />
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Link to Hyperliquid */}
       <a
