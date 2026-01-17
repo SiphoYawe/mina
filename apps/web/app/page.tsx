@@ -41,9 +41,9 @@ function BridgeFormErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-bg-base overflow-hidden">
+    <main className="relative min-h-screen bg-bg-base overflow-x-hidden">
       {/* Header */}
-      <header className="relative z-10 border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150">
+      <header className="relative z-20 border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src="/mina-logo.svg" alt="Mina" className="h-8" />
           <ConnectButton />
