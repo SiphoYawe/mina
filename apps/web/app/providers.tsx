@@ -7,6 +7,7 @@ import {
   type MinaConfig,
 } from '@siphoyawe/mina-sdk/react';
 import { WalletProvider } from './providers/wallet-provider';
+import { OfflineBanner } from '@/components/shared/offline-banner';
 import type { State } from 'wagmi';
 
 // Re-export useMina from SDK for components to use
@@ -19,6 +20,7 @@ const defaultConfig: MinaConfig = {
   integrator: 'mina-bridge',
   autoDeposit: true,
   defaultSlippage: 0.005, // 0.5%
+  lifiApiKey: process.env.NEXT_PUBLIC_LIFI_API_KEY || undefined,
 };
 
 interface MinaProviderProps {
@@ -41,6 +43,7 @@ export function MinaProvider({
   return (
     <WalletProvider initialState={initialWagmiState}>
       <SDKMinaProvider config={config}>
+        <OfflineBanner />
         {children}
       </SDKMinaProvider>
     </WalletProvider>
