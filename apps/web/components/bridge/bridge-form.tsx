@@ -945,7 +945,7 @@ export function BridgeForm() {
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 onClick={handleDemoPreview}
               >
                 <Play className="w-4 h-4 mr-1" />
@@ -953,7 +953,7 @@ export function BridgeForm() {
               </Button>
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 onClick={handleDemoTrading}
               >
                 <TrendingUp className="w-4 h-4 mr-1" />
