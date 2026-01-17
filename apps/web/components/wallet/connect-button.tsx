@@ -110,8 +110,8 @@ export function ConnectButton({
 
   // Style variants
   const variantClasses = {
-    primary: 'bg-accent-primary text-bg-base hover:bg-accent-hover hover:shadow-glow active:scale-[0.98]',
-    secondary: 'bg-bg-elevated text-text-primary border border-border-default hover:bg-bg-surface hover:border-accent-primary/50',
+    primary: 'bg-gradient-to-b from-accent-primary to-accent-muted text-bg-base border-t border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-2px_0_rgba(0,0,0,0.1),0_0_20px_rgba(125,211,252,0.3)] hover:brightness-110 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-2px_0_rgba(0,0,0,0.1),0_0_30px_rgba(125,211,252,0.5)] active:scale-[0.98] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]',
+    secondary: 'bg-bg-elevated text-text-primary border border-border-default shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-bg-surface hover:border-accent-primary/50 hover:shadow-[0_0_15px_rgba(125,211,252,0.1)]',
     ghost: 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
   };
 
