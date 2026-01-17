@@ -44,7 +44,7 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         onClick={() => onOpenChange(false)}
       />
       {/* Full-screen scrollable container (Headless UI pattern) */}
-      <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
+      <div className="fixed inset-0 z-50 overflow-y-auto">
         {/* Centering container - min-h-full ensures centering when small, scrolls when large */}
         <div
           className="flex min-h-full justify-center p-4"
@@ -73,7 +73,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         ref={ref}
         className={cn(
           // Base styles
-          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg my-auto',
+          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg my-auto mx-auto',
           // Headless UI pattern: parent scrolls, content has max-width
           'max-w-lg',
           // Entrance animation
