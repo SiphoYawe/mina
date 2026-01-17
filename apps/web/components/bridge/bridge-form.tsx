@@ -458,18 +458,20 @@ export function BridgeForm() {
     // Calculate USD value if token has price
     const tokenPrice = sourceToken.priceUsd ?? 0;
     const usdValue = numAmount * tokenPrice;
+    // Round to 2 decimal places to avoid floating point precision issues
+    const usdValueRounded = Math.round(usdValue * 100) / 100;
 
     // Check minimum amount
-    if (tokenPrice > 0 && usdValue < MIN_BRIDGE_AMOUNT_USD) {
+    if (tokenPrice > 0 && usdValueRounded < MIN_BRIDGE_AMOUNT_USD) {
       return {
         isValid: false,
-        message: `Minimum bridge amount is $${MIN_BRIDGE_AMOUNT_USD}. Current value: $${usdValue.toFixed(2)}`,
+        message: `Minimum bridge amount is $${MIN_BRIDGE_AMOUNT_USD}. Current value: $${usdValueRounded.toFixed(2)}`,
         severity: 'warning',
       };
     }
 
     // Check maximum amount (safety limit)
-    if (tokenPrice > 0 && usdValue > MAX_BRIDGE_AMOUNT_USD) {
+    if (tokenPrice > 0 && usdValueRounded > MAX_BRIDGE_AMOUNT_USD) {
       return {
         isValid: false,
         message: `Maximum bridge amount is $${MAX_BRIDGE_AMOUNT_USD.toLocaleString()}. Consider splitting into multiple transactions.`,
