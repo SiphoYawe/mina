@@ -8,6 +8,7 @@ import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
+import { Spotlight } from '@/components/ui/spotlight';
 import { cn } from '@/lib/utils';
 
 /**
@@ -65,10 +66,13 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative z-10 container mx-auto px-4 py-16 text-center">
-        <h1 className="text-h1 text-text-primary mb-4">
+        {/* Spotlight Effect */}
+        <Spotlight />
+
+        <h1 className="relative z-20 text-h1 text-text-primary mb-4">
           Bridge to <span className="text-gradient">Hyperliquid</span>
         </h1>
-        <p className="text-body text-text-secondary max-w-2xl mx-auto mb-8">
+        <p className="relative z-20 text-body text-text-secondary max-w-2xl mx-auto mb-8">
           Seamlessly bridge assets from 40+ chains directly to your Hyperliquid trading account.
           One click, zero hassle.
         </p>
