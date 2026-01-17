@@ -1079,47 +1079,85 @@ export function BridgeForm() {
 
         {/* Demo Options - Only in Simulate mode when quote is ready */}
         {isSimulateMode && quote && (
-          <div className="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-card space-y-3">
-            <div className="flex items-center gap-2">
-              <Play className="w-4 h-4 text-accent-primary" />
-              <span className="text-small font-medium text-text-primary">Demo Mode</span>
-            </div>
-            <p className="text-caption text-text-muted">
-              Preview the full experience without connecting a wallet or having funds.
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={handleDemoPreview}
-              >
-                <Play className="w-4 h-4 mr-1" />
-                Preview Bridge
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={handleDemoTrading}
-              >
-                <TrendingUp className="w-4 h-4 mr-1" />
-                Demo Trading
-              </Button>
+          <div className="relative overflow-hidden rounded-xl">
+            {/* Subtle gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/[0.08] via-transparent to-accent-muted/[0.05]" />
+            <div className="absolute inset-0 ring-1 ring-inset ring-accent-primary/20 rounded-xl" />
+
+            <div className="relative p-5 space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-accent-primary/15 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-accent-primary" />
+                </div>
+                <div>
+                  <span className="text-small font-semibold text-text-primary">Try Demo Mode</span>
+                  <p className="text-[11px] text-text-muted">No wallet or funds required</p>
+                </div>
+              </div>
+
+              {/* Demo Actions - Stacked with visual hierarchy */}
+              <div className="space-y-2.5">
+                {/* Primary Demo Action - Preview Bridge */}
+                <button
+                  onClick={handleDemoPreview}
+                  className="w-full group relative overflow-hidden rounded-xl p-3.5 bg-gradient-to-r from-accent-primary/15 via-accent-primary/10 to-transparent border border-accent-primary/30 hover:border-accent-primary/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(125,211,252,0.15)]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent-primary/20 flex items-center justify-center group-hover:bg-accent-primary/30 transition-colors">
+                      <Play className="w-5 h-5 text-accent-primary" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-small font-semibold text-text-primary block">Preview Bridge Flow</span>
+                      <span className="text-caption text-text-muted">See the complete bridging experience</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-accent-primary/60 group-hover:text-accent-primary group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </button>
+
+                {/* Secondary Demo Action - Demo Trading */}
+                <button
+                  onClick={handleDemoTrading}
+                  className="w-full group relative overflow-hidden rounded-xl p-3.5 bg-bg-elevated/60 border border-border-subtle hover:border-success/30 hover:bg-success/[0.05] transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center group-hover:bg-success/15 transition-colors">
+                      <TrendingUp className="w-5 h-5 text-text-muted group-hover:text-success transition-colors" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-small font-medium text-text-secondary group-hover:text-text-primary transition-colors block">Explore Trading</span>
+                      <span className="text-caption text-text-muted">Jump to Hyperliquid demo</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-text-muted/40 group-hover:text-success/60 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Info Text */}
+        {/* Info Text - Refined footer */}
         {sourceChain && (isSimulateMode || (isConnected && !needsSwitch)) && (
-          <p className="text-center text-caption text-text-muted">
-            {isSimulateMode ? 'Simulating bridge' : 'Bridging'} from {sourceChain.name} to HyperEVM
-          </p>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
+            <span className="text-caption text-text-muted px-3 flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-accent-primary/60" />
+              {isSimulateMode ? 'Simulating' : 'Bridging'} from <span className="text-text-secondary font-medium">{sourceChain.name}</span> to <span className="text-success font-medium">HyperEVM</span>
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
+          </div>
         )}
 
         {/* Network mismatch warning when dismissed - Bridge mode only */}
         {!isSimulateMode && isConnected && needsSwitch && isDismissed && (
-          <p className="text-center text-caption text-warning">
-            Switch to {sourceChain?.name} to continue
-          </p>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-warning/30 to-transparent" />
+            <span className="text-caption text-warning px-3 flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3" />
+              Switch to {sourceChain?.name} to continue
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-warning/30 to-transparent" />
+          </div>
         )}
       </CardContent>
 
