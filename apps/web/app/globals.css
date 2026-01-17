@@ -144,3 +144,10 @@
     }
   }
 }
+
+/* Confetti Canvas - ensure it doesn't block interactions */
+/* canvas-confetti library creates canvases with this specific class */
+canvas.confetti-canvas {
+  pointer-events: none !important;
+  z-index: 9999;
+}

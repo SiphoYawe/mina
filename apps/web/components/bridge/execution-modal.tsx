@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw } from 'lucide-react';
+import { ConfettiCelebration } from '@/components/shared/confetti';
+import { useUIStore } from '@/lib/stores/ui-store';
 import {
   Dialog,
   DialogContent,
@@ -92,9 +94,17 @@ function SuccessContent({
   const sourceExplorerUrl = txHash && fromChainId ? getExplorerUrl(fromChainId, txHash) : null;
   const destExplorerUrl = receivingTxHash && toChainId ? getExplorerUrl(toChainId, receivingTxHash) : null;
   const depositExplorerUrl = depositTxHash ? getExplorerUrl(999, depositTxHash) : null;
+  const { triggerConfetti } = useUIStore();
+
+  // Trigger confetti celebration on mount (when success content is shown)
+  useEffect(() => {
+    triggerConfetti();
+  }, [triggerConfetti]);
 
   return (
     <>
+      {/* Confetti animation - renders to its own canvas */}
+      <ConfettiCelebration />
       <DialogBody className="text-center">
         {/* Success icon */}
         <div className="flex justify-center mb-6">

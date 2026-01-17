@@ -9,3 +9,4 @@ export { useBalanceValidation } from './use-balance-validation';
 export { useBridgeExecution, type ExecutionResult } from './use-bridge-execution';
 export { useAutoDeposit, type DepositState, type AutoDepositOptions } from './use-auto-deposit';
 export { useTransactionHistory } from './use-transaction-history';
+export { useReducedMotion } from './use-reduced-motion';

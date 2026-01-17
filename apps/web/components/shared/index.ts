@@ -1,0 +1,1 @@
+export { ConfettiCelebration } from './confetti';
