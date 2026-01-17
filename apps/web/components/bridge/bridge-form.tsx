@@ -191,8 +191,13 @@ function ExchangeRateDisplay({ quote }: { quote: Quote }) {
 function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; className?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Check if we have alternative routes
-  if (!quote.alternativeRoutes || quote.alternativeRoutes.length === 0) {
+  // Filter to only show routes that are different from the currently selected route
+  const differentRoutes = quote.alternativeRoutes?.filter(
+    (route) => route.type !== quote.routePreference
+  ) || [];
+
+  // Hide if no different routes available
+  if (differentRoutes.length === 0) {
     return null;
   }
 
@@ -210,7 +215,7 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
       >
         <span className="text-small text-text-secondary flex items-center gap-2">
           <Info className="w-4 h-4" />
-          {quote.alternativeRoutes.length} alternative route{quote.alternativeRoutes.length > 1 ? 's' : ''} available
+          {differentRoutes.length} alternative route{differentRoutes.length > 1 ? 's' : ''} available
         </span>
         <span className={cn('text-text-muted transition-transform text-caption', isExpanded && 'rotate-180')}>
           ▼
@@ -222,7 +227,7 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
           <p className="text-caption text-text-muted mb-2">
             Current route: <span className="text-text-secondary font-medium">{quote.routePreference}</span> (selected)
           </p>
-          {quote.alternativeRoutes.map((route) => (
+          {differentRoutes.map((route) => (
             <div
               key={route.routeId}
               className="flex items-center justify-between p-2 rounded-lg bg-bg-surface/30 border border-border-subtle"

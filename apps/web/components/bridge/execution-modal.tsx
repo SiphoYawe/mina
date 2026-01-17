@@ -2,13 +2,10 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw, WifiOff, TrendingUp, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw, WifiOff, Loader2 } from 'lucide-react';
 import { ConfettiCelebration } from '@/components/shared/confetti';
-import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { useUIStore } from '@/lib/stores/ui-store';
-import { useBridgeStore } from '@/lib/stores/bridge-store';
-import { copyToClipboard, type ShareReceiptData } from '@/lib/utils/share';
+import { copyToClipboard } from '@/lib/utils/share';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +20,6 @@ import { useTransactionStore, type UIStepStatus } from '@/lib/stores/transaction
 import { cn } from '@/lib/utils';
 import { useAccount } from 'wagmi';
 import { chainConfigs } from '@/lib/config/chain-configs';
-import { usePearAuth } from '@/lib/pear';
 
 // Lazy load globe visualization to avoid bundle bloat (Story 9.6)
 const GlobeVisualization = dynamic(
@@ -147,87 +143,24 @@ const HYPERLIQUID_TRADING_URL = 'https://app.hyperliquid.xyz/trade';
  * Success state content
  */
 function SuccessContent({
-  txHash,
-  receivingTxHash,
   receivedAmount,
-  fromChainId,
-  toChainId,
   autoDepositCompleted,
-  depositTxHash,
   finalTradingBalance,
   onBridgeAgain,
   onClose,
-  startedAt,
 }: {
-  txHash: string | null;
-  receivingTxHash: string | null;
   receivedAmount: string | null;
-  fromChainId: number | null;
-  toChainId: number | null;
   autoDepositCompleted: boolean;
-  depositTxHash: string | null;
   finalTradingBalance: string | null;
   onBridgeAgain?: () => void;
   onClose: () => void;
-  startedAt: number | null;
 }) {
-  const router = useRouter();
-  const sourceExplorerUrl = txHash && fromChainId ? getExplorerUrl(fromChainId, txHash) : null;
-  const destExplorerUrl = receivingTxHash && toChainId ? getExplorerUrl(toChainId, receivingTxHash) : null;
-  const depositExplorerUrl = depositTxHash ? getExplorerUrl(999, depositTxHash) : null;
   const { triggerConfetti } = useUIStore();
-  const { sourceChain, sourceToken, amount } = useBridgeStore();
-
-  // Pear Protocol auth
-  const { isAuthenticated: isPearAuthenticated, isAuthenticating: isPearAuthenticating, authenticate: authenticatePear, authError: pearAuthError } = usePearAuth();
-  const [showPearPrompt, setShowPearPrompt] = useState(false);
-  const [pearAuthDeclined, setPearAuthDeclined] = useState(false);
-
-  // Build receipt data for sharing
-  const receiptData: ShareReceiptData | null = txHash && sourceChain && sourceToken && receivedAmount ? {
-    txHash,
-    fromChain: { name: sourceChain.name, id: sourceChain.id },
-    toChain: { name: 'Hyperliquid', id: toChainId || 999 },
-    fromToken: { symbol: sourceToken.symbol, amount: amount || '0' },
-    toToken: { symbol: 'USDC', amount: receivedAmount },
-    timestamp: startedAt || Date.now(),
-  } : null;
 
   // Trigger confetti celebration on mount (when success content is shown)
   useEffect(() => {
     triggerConfetti();
   }, [triggerConfetti]);
-
-  // Show Pear prompt after 1 second (only if auto-deposit completed and not already authenticated)
-  useEffect(() => {
-    if (autoDepositCompleted && !isPearAuthenticated && !pearAuthDeclined) {
-      const timer = setTimeout(() => {
-        setShowPearPrompt(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [autoDepositCompleted, isPearAuthenticated, pearAuthDeclined]);
-
-  // Handle Pear authentication
-  const handleEnableTrading = useCallback(async () => {
-    const success = await authenticatePear();
-    if (success) {
-      onClose();
-      router.push('/trade');
-    }
-  }, [authenticatePear, onClose, router]);
-
-  // Handle declining Pear auth
-  const handleDeclinePear = useCallback(() => {
-    setPearAuthDeclined(true);
-    setShowPearPrompt(false);
-  }, []);
-
-  // Go directly to trade page if already authenticated
-  const handleGoToTrade = useCallback(() => {
-    onClose();
-    router.push('/trade');
-  }, [onClose, router]);
 
   return (
     <>
@@ -284,150 +217,21 @@ function SuccessContent({
           )}
         </div>
 
-        {/* Pear Trading Prompt - Show after auto-deposit complete */}
-        {autoDepositCompleted && showPearPrompt && !isPearAuthenticated && (
-          <div className="mb-6 p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-card animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-accent-primary" />
-              <h4 className="text-body font-medium text-text-primary">Start Pair Trading</h4>
-            </div>
-            <p className="text-small text-text-muted mb-4">
-              Sign to enable pair trading on Hyperliquid via Pear Protocol. Trade 30,000+ pairs with advanced strategies.
-            </p>
-            {pearAuthError && (
-              <p className="text-small text-error mb-3">{pearAuthError}</p>
-            )}
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                size="sm"
-                onClick={handleEnableTrading}
-                disabled={isPearAuthenticating}
-              >
-                {isPearAuthenticating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signing...
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Enable Trading
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDeclinePear}
-                disabled={isPearAuthenticating}
-              >
-                Later
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Explorer links */}
-        <div className="space-y-3 mb-2">
-          {sourceExplorerUrl && (
-            <a
-              href={sourceExplorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 p-3 rounded-lg bg-bg-elevated hover:bg-bg-surface transition-colors text-body text-text-primary"
-            >
-              <span>View Source Transaction</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
-          {destExplorerUrl && !autoDepositCompleted && (
-            <a
-              href={destExplorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 p-3 rounded-lg bg-bg-elevated hover:bg-bg-surface transition-colors text-body text-text-primary"
-            >
-              <span>View on HyperEVM Explorer</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
-          {depositExplorerUrl && autoDepositCompleted && (
-            <a
-              href={depositExplorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 p-3 rounded-lg bg-bg-elevated hover:bg-bg-surface transition-colors text-body text-text-primary"
-            >
-              <span>View Deposit Transaction</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
-        </div>
-
-        {/* Share Receipt Button */}
-        {receiptData && (
-          <div className="flex justify-center mb-4">
-            <ShareReceiptButton receipt={receiptData} />
-          </div>
-        )}
       </DialogBody>
 
       <DialogFooter className="flex-col gap-3">
-        {/* Primary CTA based on state */}
-        {autoDepositCompleted ? (
-          isPearAuthenticated ? (
-            // Already authenticated with Pear - go to trade page
-            <Button
-              className="w-full hover:shadow-glow"
-              size="lg"
-              onClick={handleGoToTrade}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Start Pair Trading
-            </Button>
-          ) : (
-            // Not authenticated - link to Hyperliquid (fallback)
-            <a
-              href={HYPERLIQUID_TRADING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full"
-            >
-              <Button className="w-full hover:shadow-glow" size="lg">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Start Trading on Hyperliquid
-              </Button>
-            </a>
-          )
-        ) : (
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => {
-              onClose();
-              onBridgeAgain?.();
-            }}
-          >
-            <ArrowRight className="w-4 h-4 mr-2" />
-            Bridge Again
-          </Button>
-        )}
-
-        {/* Secondary: Bridge Again (if auto-deposit completed) */}
-        {autoDepositCompleted && (
-          <Button
-            variant="secondary"
-            className="w-full"
-            onClick={() => {
-              onClose();
-              onBridgeAgain?.();
-            }}
-          >
-            <ArrowRight className="w-4 h-4 mr-2" />
-            Bridge Again
-          </Button>
-        )}
+        {/* Primary CTA: Bridge Again */}
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={() => {
+            onClose();
+            onBridgeAgain?.();
+          }}
+        >
+          <ArrowRight className="w-4 h-4 mr-2" />
+          Bridge Again
+        </Button>
 
         <Button
           variant="ghost"
@@ -1061,17 +865,11 @@ export function ExecutionModal({
 
         {status === 'completed' && !isRetrying && (
           <SuccessContent
-            txHash={txHash}
-            receivingTxHash={receivingTxHash}
             receivedAmount={receivedAmount}
-            fromChainId={fromChainId}
-            toChainId={toChainId}
             autoDepositCompleted={autoDepositCompleted}
-            depositTxHash={depositTxHash}
             finalTradingBalance={finalTradingBalance}
             onBridgeAgain={onBridgeAgain}
             onClose={handleClose}
-            startedAt={startedAt}
           />
         )}
 

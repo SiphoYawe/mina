@@ -43,9 +43,11 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content - DIALOG-004 Fix: Use items-start with scroll for tall dialogs */}
-      <div className="fixed inset-0 flex items-start justify-center py-6 px-4 overflow-y-auto">
-        {children}
+      {/* Content container - centers dialog with safe scroll */}
+      <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="my-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

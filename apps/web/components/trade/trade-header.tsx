@@ -20,7 +20,7 @@ export function TradeHeader({ className }: TradeHeaderProps) {
   const isPnlPositive = unrealizedPnl >= 0;
 
   return (
-    <header className={cn('border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150', className)}>
+    <header className={cn('relative z-20 border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150', className)}>
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Left: Logo and Back */}

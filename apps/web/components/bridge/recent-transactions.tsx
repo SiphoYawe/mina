@@ -253,15 +253,9 @@ export function RecentTransactions({
     );
   }
 
+  // Hide completely if no transactions
   if (transactions.length === 0) {
-    return (
-      <div className={className}>
-        <h3 className="text-small font-medium text-text-secondary mb-3">
-          Recent Transactions
-        </h3>
-        <EmptyState />
-      </div>
-    );
+    return null;
   }
 
   return (
