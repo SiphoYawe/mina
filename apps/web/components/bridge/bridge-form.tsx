@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2, AlertTriangle, XCircle } from 'lucide-react';
+import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
+import { useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
 import { TokenSelector } from './token-selector';
@@ -20,6 +21,7 @@ import { NetworkSwitchPrompt } from '@/components/wallet';
 import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution, useTransactionHistory } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
+import { useTransactionStore } from '@/lib/stores/transaction-store';
 import { useMina } from '@/app/providers';
 import { cn } from '@/lib/utils';
 import type { Chain, Token, Quote } from '@siphoyawe/mina-sdk';
@@ -258,6 +260,7 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
  * - Balance refresh after network switch
  */
 export function BridgeForm() {
+  const router = useRouter();
   const { open: openWalletModal } = useAppKit();
   const { isConnected } = useAppKitAccount();
   const walletChainId = useChainId();
@@ -610,6 +613,77 @@ export function BridgeForm() {
     }
   }, [retry]);
 
+  // Handle demo trading - navigate to trade page in simulate mode
+  const handleDemoTrading = useCallback(() => {
+    console.log('[BridgeForm] Navigating to demo trading');
+    router.push('/trade');
+  }, [router]);
+
+  // Get transaction store for demo execution
+  const {
+    startExecution: startDemoExecution,
+    updateStep: updateDemoStep,
+    setCompleted: setDemoCompleted,
+  } = useTransactionStore();
+
+  // Handle demo bridge preview - shows execution modal with simulated progress
+  const handleDemoPreview = useCallback(async () => {
+    if (!sourceChain || !sourceToken || !amount || !quote) return;
+
+    console.log('[BridgeForm] Starting demo bridge preview');
+
+    const demoExecutionId = `demo_${Date.now()}`;
+    const demoSteps = [
+      { id: 'approval', type: 'approval' as const },
+      { id: 'swap', type: 'swap' as const },
+      { id: 'bridge', type: 'bridge' as const },
+      { id: 'deposit', type: 'deposit' as const },
+    ];
+
+    // Start demo execution
+    startDemoExecution({
+      executionId: demoExecutionId,
+      steps: demoSteps,
+      fromChainId: sourceChain.id,
+      toChainId: 999, // HyperEVM
+    });
+
+    // Simulate progress through each step
+    for (let i = 0; i < demoSteps.length; i++) {
+      const step = demoSteps[i]!;
+
+      // Mark step as active
+      await new Promise(resolve => setTimeout(resolve, 800));
+      updateDemoStep({
+        stepId: step.id,
+        step: step.type,
+        status: 'active',
+        timestamp: Date.now(),
+      });
+
+      // Mark step as completed
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      updateDemoStep({
+        stepId: step.id,
+        step: step.type,
+        status: 'completed',
+        timestamp: Date.now(),
+        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      });
+    }
+
+    // Mark as completed with demo data
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setDemoCompleted({
+      txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      receivingTxHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      receivedAmount: amount,
+      autoDepositCompleted: true,
+      depositTxHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      finalTradingBalance: amount,
+    });
+  }, [sourceChain, sourceToken, amount, quote, startDemoExecution, updateDemoStep, setDemoCompleted]);
+
   // Get tooltip message for disabled bridge button
   const getTooltipMessage = useCallback((): string => {
     if (!isConnected) return 'Connect your wallet to bridge';
@@ -828,6 +902,37 @@ export function BridgeForm() {
               : 'Bridge Now'}
           </Button>
         </BridgeButtonTooltip>
+
+        {/* Demo Options - Only in Simulate mode when quote is ready */}
+        {isSimulateMode && quote && (
+          <div className="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-card space-y-3">
+            <div className="flex items-center gap-2">
+              <Play className="w-4 h-4 text-accent-primary" />
+              <span className="text-small font-medium text-text-primary">Demo Mode</span>
+            </div>
+            <p className="text-caption text-text-muted">
+              Preview the full experience without connecting a wallet or having funds.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDemoPreview}
+              >
+                <Play className="w-4 h-4 mr-1" />
+                Preview Bridge
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDemoTrading}
+              >
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Demo Trading
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Info Text */}
         {sourceChain && (isSimulateMode || (isConnected && !needsSwitch)) && (

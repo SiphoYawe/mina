@@ -36,17 +36,28 @@ export function ServiceWorkerRegistration({ className }: ServiceWorkerRegistrati
       // Tell the waiting service worker to take control
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
 
-      // Reload the page after the new SW takes control
-      waitingWorker.addEventListener('statechange', () => {
+      // Handler for statechange event
+      const handleStateChange = () => {
         if (waitingWorker.state === 'activated') {
+          waitingWorker.removeEventListener('statechange', handleStateChange);
           window.location.reload();
         }
-      });
+      };
 
-      // Fallback reload if statechange doesn't fire
-      setTimeout(() => {
+      // Reload the page after the new SW takes control
+      waitingWorker.addEventListener('statechange', handleStateChange);
+
+      // Fallback reload if statechange doesn't fire within 2 seconds
+      const timeoutId = setTimeout(() => {
+        waitingWorker.removeEventListener('statechange', handleStateChange);
         window.location.reload();
-      }, 1000);
+      }, 2000);
+
+      // Store timeout for potential cleanup
+      return () => {
+        clearTimeout(timeoutId);
+        waitingWorker.removeEventListener('statechange', handleStateChange);
+      };
     }
   }, [waitingWorker]);
 
@@ -56,8 +67,12 @@ export function ServiceWorkerRegistration({ className }: ServiceWorkerRegistrati
   }, []);
 
   useEffect(() => {
-    // Only run in browser and production
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    // Only run in browser, production, and when service worker is supported
+    if (
+      typeof window === 'undefined' ||
+      !('serviceWorker' in navigator) ||
+      process.env.NODE_ENV === 'development'
+    ) {
       return;
     }
 

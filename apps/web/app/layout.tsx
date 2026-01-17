@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { MinaProvider } from './providers';
-import { ServiceWorkerRegistration, OfflineBanner, InstallBanner } from '@/components/shared';
+import { ServiceWorkerRegistration, InstallBanner } from '@/components/shared';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -59,7 +59,6 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans`}>
         <MinaProvider>
-          <OfflineBanner />
           {children}
           <InstallBanner />
           <ServiceWorkerRegistration />
