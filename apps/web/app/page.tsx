@@ -96,6 +96,35 @@ export default function Home() {
           <RecentTransactions maxItems={5} />
         </motion.div>
 
+        {/* Credits */}
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mt-16 pb-8 text-center text-caption text-text-muted"
+        >
+          <p>
+            Powered by{' '}
+            <a
+              href="https://www.npmjs.com/package/@siphoyawe/mina-sdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-primary hover:text-accent-hover transition-colors underline underline-offset-2"
+            >
+              Mina SDK
+            </a>
+            {' '}&middot;{' '}
+            Built by{' '}
+            <a
+              href="https://github.com/SiphoYawe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-primary hover:text-accent-hover transition-colors underline underline-offset-2"
+            >
+              Sipho Yawe
+            </a>
+          </p>
+        </motion.footer>
       </section>
 
     </main>

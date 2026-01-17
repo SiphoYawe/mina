@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, X, Star, Clock, DollarSign, AlertCircle } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,15 @@ interface SettingsPanelProps {
  */
 export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [customSlippageInput, setCustomSlippageInput] = useState('');
   const [slippageError, setSlippageError] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  // Mount check for SSR safety with portal
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Get settings state and actions
   const { slippage, routePreference, isCustomSlippage, setSlippage, setSlippagePreset, setRoutePreference } =
@@ -121,24 +128,14 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
     }
   }, [customSlippageInput, slippageError, applyCustomSlippage]);
 
-  return (
+  // Portal content for backdrop and panel
+  const portalContent = isMounted ? (
     <>
-      {/* Settings Trigger Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setIsOpen(true)}
-        className="hover:bg-bg-elevated text-text-secondary hover:text-text-primary transition-colors"
-        aria-label="Open settings"
-      >
-        <Settings className="w-5 h-5" />
-      </Button>
-
       {/* Backdrop */}
       {isOpen && (
         <div
           className={cn(
-            "fixed inset-0 bg-black/60 backdrop-blur-sm z-40",
+            "fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]",
             !prefersReducedMotion && "animate-in fade-in duration-200"
           )}
           onClick={handleClose}
@@ -149,7 +146,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
       {/* Slide-out Panel */}
       <div
         className={cn(
-          "fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-bg-elevated border-l border-border-subtle z-50",
+          "fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-bg-elevated border-l border-border-subtle z-[9999]",
           "flex flex-col",
           isOpen ? "translate-x-0" : "translate-x-full",
           !prefersReducedMotion && "transition-transform duration-300 ease-in-out"
@@ -299,6 +296,24 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
           </p>
         </div>
       </div>
+    </>
+  ) : null;
+
+  return (
+    <>
+      {/* Settings Trigger Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsOpen(true)}
+        className="hover:bg-bg-elevated text-text-secondary hover:text-text-primary transition-colors"
+        aria-label="Open settings"
+      >
+        <Settings className="w-5 h-5" />
+      </Button>
+
+      {/* Portal to body for proper fixed positioning */}
+      {isMounted && createPortal(portalContent, document.body)}
     </>
   );
 }
