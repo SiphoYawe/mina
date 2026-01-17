@@ -7,6 +7,8 @@ import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
+import { cn } from '@/lib/utils';
 
 /**
  * Issue 7 fix: Fallback UI for BridgeForm error boundary
@@ -40,9 +42,21 @@ function BridgeFormErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-bg-base">
+    <main className="relative min-h-screen bg-bg-base overflow-hidden">
+      {/* Animated Grid Background */}
+      <AnimatedGridPattern
+        numSquares={30}
+        maxOpacity={0.08}
+        duration={3}
+        repeatDelay={1}
+        className={cn(
+          '[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]',
+          'inset-x-0 inset-y-[-30%] h-[200%] skew-y-12'
+        )}
+      />
+
       {/* Header */}
-      <header className="border-b border-border-subtle">
+      <header className="relative z-10 border-b border-border-subtle">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src="/mina-logo.svg" alt="Mina" className="h-8" />
           <ConnectButton />
@@ -50,7 +64,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
+      <section className="relative z-10 container mx-auto px-4 py-16 text-center">
         <h1 className="text-h1 text-text-primary mb-4">
           Bridge to <span className="text-gradient">Hyperliquid</span>
         </h1>
