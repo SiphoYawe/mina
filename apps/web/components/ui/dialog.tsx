@@ -43,14 +43,17 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content container - DIALOG-007 Fix: Fully dynamic centering with CSS Grid */}
-      <div
-        className="fixed inset-0 z-50 grid place-items-center overflow-y-auto overscroll-contain"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onOpenChange(false);
-        }}
-      >
-        {children}
+      {/* Full-screen scrollable container (Headless UI pattern) */}
+      <div className="fixed inset-0 z-50 w-screen overflow-y-auto p-4">
+        {/* Centering container - min-h-full ensures centering when small, scrolls when large */}
+        <div
+          className="flex min-h-full items-center justify-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onOpenChange(false);
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -70,9 +73,9 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         ref={ref}
         className={cn(
           // Base styles
-          'relative bg-bg-surface border border-border-default rounded-card shadow-lg',
-          // DIALOG-007 Fix: Dynamic sizing with safe viewport margins
-          'm-4 w-[calc(100%-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto',
+          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg',
+          // Headless UI pattern: parent scrolls, content has max-width
+          'max-w-lg',
           // Entrance animation
           'animate-in fade-in zoom-in-95 duration-200',
           className
