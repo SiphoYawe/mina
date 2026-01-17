@@ -1,6 +1,6 @@
 {
   "name": "@mina-bridge/web",
-  "version": "1.2.5",
+  "version": "1.2.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
