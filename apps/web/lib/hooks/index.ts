@@ -22,3 +22,4 @@ export {
   type PushNotificationActions,
   type UsePushNotificationsReturn,
 } from './use-push-notifications';
+export { useInstallPrompt, type UseInstallPromptReturn } from './use-install-prompt';

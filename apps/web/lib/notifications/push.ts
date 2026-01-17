@@ -354,8 +354,8 @@ export async function sendTestNotification(
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, {
       body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-72.png',
+      icon: '/icon-192.svg',
+      badge: '/badge-72.svg',
       tag: 'mina-bridge-notification',
       data: {
         url: window.location.href,
