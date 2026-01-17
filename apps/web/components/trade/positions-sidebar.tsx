@@ -169,6 +169,11 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
     );
   }
 
+  // Don't show anything if no positions (hide empty state)
+  if (!isLoading && !error && (!positions || positions.length === 0)) {
+    return null;
+  }
+
   return (
     <div className={cn('bg-bg-surface rounded-card p-4', className)}>
       <div className="flex items-center justify-between mb-4">
@@ -191,14 +196,6 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
           <Button size="sm" variant="ghost" onClick={() => refetch()}>
             Retry
           </Button>
-        </div>
-      ) : !positions || positions.length === 0 ? (
-        <div className="text-center py-8">
-          <TrendingUp className="w-8 h-8 mx-auto mb-2 text-text-muted" />
-          <p className="text-small text-text-muted">No open positions</p>
-          <p className="text-caption text-text-muted mt-1">
-            Create a trade to open a position
-          </p>
         </div>
       ) : (
         <div className="space-y-3 max-h-[500px] overflow-y-auto">
