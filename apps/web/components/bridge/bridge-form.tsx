@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2 } from 'lucide-react';
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2, AlertTriangle, XCircle } from 'lucide-react';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
+import { TokenSelector } from './token-selector';
 import { QuoteDisplay } from './quote-display';
 import { BalanceWarning } from './balance-warning';
 import { AutoDepositToggle } from './auto-deposit-toggle';
@@ -17,8 +18,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
 import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution, useTransactionHistory } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
+import { useSettingsStore } from '@/lib/stores/settings-store';
+import { useMina } from '@/app/providers';
 import { cn } from '@/lib/utils';
-import type { Chain } from '@siphoyawe/mina-sdk';
+import type { Chain, Token, Quote } from '@siphoyawe/mina-sdk';
+
+/**
+ * Constants for amount validation
+ */
+const MIN_BRIDGE_AMOUNT_USD = 1; // Minimum $1 worth to bridge
+const MAX_BRIDGE_AMOUNT_USD = 100000; // Maximum $100k per transaction (safety limit)
 
 /**
  * Destination Chain Display
@@ -68,6 +77,175 @@ function BridgeButtonTooltip({ show, children, message }: { show: boolean; child
 }
 
 /**
+ * Amount validation interface
+ */
+interface AmountValidation {
+  isValid: boolean;
+  message: string | null;
+  severity: 'warning' | 'error';
+}
+
+/**
+ * Amount validation warning component (QUOTE-001)
+ * Shows helpful messages when amount is out of valid range
+ */
+function AmountValidationWarning({ validation }: { validation: AmountValidation }) {
+  if (validation.isValid || !validation.message) return null;
+
+  const isError = validation.severity === 'error';
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 rounded-lg text-small',
+        isError
+          ? 'bg-error/10 border border-error/20 text-error'
+          : 'bg-warning/10 border border-warning/20 text-warning'
+      )}
+    >
+      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+      <span>{validation.message}</span>
+    </div>
+  );
+}
+
+/**
+ * Token load error component with retry option (ERR-001)
+ */
+function TokenLoadError({ onRetry, isRetrying }: { onRetry: () => void; isRetrying: boolean }) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-error/10 border border-error/20">
+      <XCircle className="w-5 h-5 text-error flex-shrink-0" />
+      <div className="flex-1 space-y-1">
+        <p className="text-small font-medium text-error">Failed to load tokens</p>
+        <p className="text-caption text-text-muted">
+          Unable to fetch available tokens for this chain.
+        </p>
+      </div>
+      <button
+        onClick={onRetry}
+        disabled={isRetrying}
+        className={cn(
+          'px-3 py-1.5 rounded-lg text-small font-medium transition-colors',
+          'bg-error/20 text-error hover:bg-error/30',
+          isRetrying && 'opacity-50 cursor-not-allowed'
+        )}
+      >
+        {isRetrying ? (
+          <span className="flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Retrying...
+          </span>
+        ) : (
+          'Retry'
+        )}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Exchange rate display component (QUOTE-002)
+ * Shows the conversion rate between source and destination tokens
+ */
+function ExchangeRateDisplay({ quote }: { quote: Quote }) {
+  // Calculate exchange rate: toAmount / fromAmount (adjusted for decimals)
+  const rate = useMemo(() => {
+    const fromAmountNum = parseFloat(quote.fromAmount) / Math.pow(10, quote.fromToken.decimals);
+    const toAmountNum = parseFloat(quote.toAmount) / Math.pow(10, quote.toToken.decimals);
+
+    if (fromAmountNum === 0) return null;
+
+    const exchangeRate = toAmountNum / fromAmountNum;
+
+    // Format based on magnitude
+    if (exchangeRate >= 1000) {
+      return exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    } else if (exchangeRate >= 1) {
+      return exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    } else {
+      return exchangeRate.toLocaleString(undefined, { maximumSignificantDigits: 4 });
+    }
+  }, [quote]);
+
+  if (!rate) return null;
+
+  return (
+    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg-surface/50 border border-border-subtle">
+      <span className="text-caption text-text-muted">Exchange Rate</span>
+      <span className="text-small text-text-secondary font-medium">
+        1 {quote.fromToken.symbol} ≈ {rate} {quote.toToken.symbol}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Alternative routes display component (QUOTE-003)
+ * Shows alternative routes with trade-offs when available
+ */
+function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; className?: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Check if we have alternative routes
+  if (!quote.alternativeRoutes || quote.alternativeRoutes.length === 0) {
+    return null;
+  }
+
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `~${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    return `~${minutes}m`;
+  };
+
+  return (
+    <div className={cn('border border-border-subtle rounded-xl overflow-hidden', className)}>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-bg-surface/50 hover:bg-bg-elevated/50 transition-colors"
+      >
+        <span className="text-small text-text-secondary flex items-center gap-2">
+          <Info className="w-4 h-4" />
+          {quote.alternativeRoutes.length} alternative route{quote.alternativeRoutes.length > 1 ? 's' : ''} available
+        </span>
+        <span className={cn('text-text-muted transition-transform text-caption', isExpanded && 'rotate-180')}>
+          ▼
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className="p-3 space-y-2 border-t border-border-subtle bg-bg-base/50">
+          <p className="text-caption text-text-muted mb-2">
+            Current route: <span className="text-text-secondary font-medium">{quote.routePreference}</span> (selected)
+          </p>
+          {quote.alternativeRoutes.map((route) => (
+            <div
+              key={route.routeId}
+              className="flex items-center justify-between p-2 rounded-lg bg-bg-surface/30 border border-border-subtle"
+            >
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  'px-2 py-0.5 rounded text-caption font-medium',
+                  route.type === 'fastest' && 'bg-success/10 text-success',
+                  route.type === 'cheapest' && 'bg-accent-primary/10 text-accent-primary',
+                  route.type === 'recommended' && 'bg-warning/10 text-warning'
+                )}>
+                  {route.type}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-caption text-text-muted">
+                <span>{formatTime(route.estimatedTime)}</span>
+                <span>${parseFloat(route.totalFees).toFixed(2)} fees</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Bridge Form Component
  *
  * Main form for initiating bridge transactions.
@@ -81,7 +259,7 @@ function BridgeButtonTooltip({ show, children, message }: { show: boolean; child
 export function BridgeForm() {
   const { isConnected } = useAppKitAccount();
   const walletChainId = useChainId();
-  const { chains, isLoading, error, refreshChains } = useChains();
+  const { chains, isLoading, error, refreshChains, failureCount, maxRetries } = useChains();
   const { needsSwitch, targetChainId } = useNetworkSwitchNeeded();
   const { refetchBalances } = useWalletBalance();
   const { isPending: isSwitchPending, status: switchStatus } = useNetworkSwitch();
@@ -92,19 +270,33 @@ export function BridgeForm() {
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
-  // State for auto-deposit toggle
-  const [autoDepositEnabled, setAutoDepositEnabled] = useState(true);
+
+  // Auto-deposit from persisted settings store
+  const autoDepositEnabled = useSettingsStore((state) => state.autoDeposit);
+  const setAutoDeposit = useSettingsStore((state) => state.setAutoDeposit);
 
   // Issue 2 fix: Use useShallow for state to batch subscriptions
   // Actions are stable references and can be selected directly - no need for getState()
-  const { sourceChain, amount, setSourceChain, setAmount } = useBridgeStore(
+  const { sourceChain, sourceToken, amount, setSourceChain, setSourceToken, setAmount } = useBridgeStore(
     useShallow((state) => ({
       sourceChain: state.sourceChain,
+      sourceToken: state.sourceToken,
       amount: state.amount,
       setSourceChain: state.setSourceChain,
+      setSourceToken: state.setSourceToken,
       setAmount: state.setAmount,
     }))
   );
+
+  // Get Mina SDK for token fetching
+  const { mina, isReady: isMinaReady } = useMina();
+
+  // State for token loading and list
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+  const [availableTokens, setAvailableTokens] = useState<Token[]>([]);
+  // ERR-001: Track token load errors for user feedback
+  const [tokenLoadError, setTokenLoadError] = useState<Error | null>(null);
+  const [isRetryingTokens, setIsRetryingTokens] = useState(false);
 
   // Find target chain for network switch prompt
   const targetChain = sourceChain && needsSwitch ? sourceChain : null;
@@ -140,11 +332,159 @@ export function BridgeForm() {
     }
   }, [isConnected, walletChainId]);
 
+  // Auto-load tokens when chain changes
+  // Uses a cancelled flag to prevent race conditions when rapidly switching chains
+  useEffect(() => {
+    let cancelled = false;
+    const chainId = sourceChain?.id;
+
+    async function loadTokensForChain() {
+      if (!sourceChain || !mina || !isMinaReady) {
+        setAvailableTokens([]);
+        setTokenLoadError(null);
+        return;
+      }
+
+      setIsLoadingTokens(true);
+      setTokenLoadError(null); // Clear previous errors
+      try {
+        // Fetch bridgeable tokens for the selected chain
+        const tokens = await mina.getBridgeableTokens(sourceChain.id);
+
+        // Check if request was cancelled or chain changed during fetch
+        if (cancelled) {
+          console.log('[BridgeForm] Token load cancelled (chain changed)');
+          return;
+        }
+
+        setAvailableTokens(tokens);
+        setTokenLoadError(null); // Clear error on success
+
+        if (tokens.length > 0) {
+          // Auto-select USDC if available, otherwise first token (only if no token selected)
+          if (!sourceToken) {
+            const usdc = tokens.find(
+              (t: Token) => t.symbol.toUpperCase() === 'USDC' || t.symbol.toUpperCase() === 'USDC.E'
+            );
+            const defaultToken = usdc ?? tokens[0]!;
+            setSourceToken(defaultToken);
+            console.log('[BridgeForm] Auto-selected token:', defaultToken.symbol);
+          }
+        } else {
+          console.warn('[BridgeForm] No bridgeable tokens found for chain:', sourceChain.name);
+          setSourceToken(null);
+        }
+      } catch (err) {
+        // Don't update state if request was cancelled
+        if (cancelled) return;
+
+        console.error('[BridgeForm] Failed to load tokens:', err);
+        setAvailableTokens([]);
+        setSourceToken(null);
+        // ERR-001: Track the error for user feedback
+        setTokenLoadError(err instanceof Error ? err : new Error('Failed to load tokens'));
+      } finally {
+        // Don't update loading state if request was cancelled
+        if (!cancelled) {
+          setIsLoadingTokens(false);
+        }
+      }
+    }
+
+    loadTokensForChain();
+
+    // Cleanup function to cancel in-flight requests
+    return () => {
+      cancelled = true;
+    };
+    // Note: sourceToken is intentionally not in deps to avoid re-fetching when token changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceChain?.id, mina, isMinaReady, setSourceToken]);
+
+  // ERR-001: Handler for retrying token load
+  const handleRetryTokenLoad = useCallback(async () => {
+    if (!sourceChain || !mina || !isMinaReady) return;
+
+    setIsRetryingTokens(true);
+    setTokenLoadError(null);
+
+    try {
+      const tokens = await mina.getBridgeableTokens(sourceChain.id);
+      setAvailableTokens(tokens);
+      setTokenLoadError(null);
+
+      if (tokens.length > 0 && !sourceToken) {
+        const usdc = tokens.find(
+          (t: Token) => t.symbol.toUpperCase() === 'USDC' || t.symbol.toUpperCase() === 'USDC.E'
+        );
+        const defaultToken = usdc ?? tokens[0]!;
+        setSourceToken(defaultToken);
+      }
+    } catch (err) {
+      console.error('[BridgeForm] Retry failed:', err);
+      setTokenLoadError(err instanceof Error ? err : new Error('Failed to load tokens'));
+    } finally {
+      setIsRetryingTokens(false);
+    }
+  }, [sourceChain, mina, isMinaReady, sourceToken, setSourceToken]);
+
+  // QUOTE-001: Amount validation logic
+  const amountValidation = useMemo((): AmountValidation => {
+    // No validation needed if no amount entered
+    if (!amount || !sourceToken) {
+      return { isValid: true, message: null, severity: 'warning' };
+    }
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return { isValid: true, message: null, severity: 'warning' };
+    }
+
+    // Calculate USD value if token has price
+    const tokenPrice = sourceToken.priceUsd ?? 0;
+    const usdValue = numAmount * tokenPrice;
+
+    // Check minimum amount
+    if (tokenPrice > 0 && usdValue < MIN_BRIDGE_AMOUNT_USD) {
+      return {
+        isValid: false,
+        message: `Minimum bridge amount is $${MIN_BRIDGE_AMOUNT_USD}. Current value: $${usdValue.toFixed(2)}`,
+        severity: 'warning',
+      };
+    }
+
+    // Check maximum amount (safety limit)
+    if (tokenPrice > 0 && usdValue > MAX_BRIDGE_AMOUNT_USD) {
+      return {
+        isValid: false,
+        message: `Maximum bridge amount is $${MAX_BRIDGE_AMOUNT_USD.toLocaleString()}. Consider splitting into multiple transactions.`,
+        severity: 'error',
+      };
+    }
+
+    // Very small amounts warning (may result in dust)
+    if (numAmount > 0 && numAmount < 0.0001) {
+      return {
+        isValid: false,
+        message: 'Amount may be too small to bridge effectively due to fees.',
+        severity: 'warning',
+      };
+    }
+
+    return { isValid: true, message: null, severity: 'warning' };
+  }, [amount, sourceToken]);
+
   // Handle chain selection
   const handleChainChange = useCallback((chain: Chain) => {
     setSourceChain(chain);
+    setSourceToken(null); // Clear token when chain changes
     setIsDismissed(false); // Reset dismissed state
-  }, [setSourceChain]);
+  }, [setSourceChain, setSourceToken]);
+
+  // Handle token selection
+  const handleTokenChange = useCallback((token: Token) => {
+    setSourceToken(token);
+  }, [setSourceToken]);
 
   // Handle amount change
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,11 +509,12 @@ export function BridgeForm() {
   // Determine if we should show the network switch prompt
   const showNetworkPrompt = targetChain && !isDismissed;
 
-  // Handle auto-deposit toggle
+  // Handle auto-deposit toggle (SETTINGS-003 fix: now properly triggers quote refetch)
+  // The quote hook reads autoDeposit from settings store and includes it in query key,
+  // so toggling will automatically refetch with the updated autoDeposit preference
   const handleAutoDepositToggle = useCallback((enabled: boolean) => {
-    setAutoDepositEnabled(enabled);
-    // In a full implementation, this would trigger a quote refetch with autoDeposit param
-  }, []);
+    setAutoDeposit(enabled);
+  }, [setAutoDeposit]);
 
   // Handle bridge execution
   const handleBridge = useCallback(async () => {
@@ -209,10 +550,10 @@ export function BridgeForm() {
       steps: executionSteps,
     });
 
-    const result = await execute(quote);
+    // Pass the executionId to ensure consistency between transaction history and execution store
+    const result = await execute(quote, { executionId });
 
     // Update transaction status based on result
-    // Use the local executionId we generated (not result.executionId) to ensure consistency
     if (result.success) {
       console.log('[BridgeForm] Bridge completed successfully:', result);
       updateTransaction(executionId, {
@@ -268,15 +609,19 @@ export function BridgeForm() {
     if (!isConnected) return 'Connect your wallet to bridge';
     if (needsSwitch) return 'Switch to the correct network first';
     if (!sourceChain) return 'Select a source chain';
+    if (isLoadingTokens) return 'Loading available tokens...';
+    if (!sourceToken) return 'No bridgeable tokens available for this chain';
     if (!amount) return 'Enter an amount to bridge';
+    if (isQuoteLoading) return 'Fetching quote...';
+    if (quoteError) return 'Failed to get quote - try again';
     if (quote && !isBalanceValid) return 'Insufficient balance for this transaction';
     if (isExecuting) return 'Transaction in progress';
     return '';
-  }, [isConnected, needsSwitch, sourceChain, amount, quote, isBalanceValid, isExecuting]);
+  }, [isConnected, needsSwitch, sourceChain, sourceToken, amount, quote, isBalanceValid, isExecuting, isLoadingTokens, isQuoteLoading, quoteError]);
 
   // Determine if bridge button should be disabled
   const hasBalanceIssue = Boolean(quote && !isBalanceValid);
-  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
+  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !sourceToken || isLoadingTokens || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
 
   return (
     <Card className="max-w-md mx-auto">
@@ -339,29 +684,47 @@ export function BridgeForm() {
             error={error}
             disabled={!isConnected}
             placeholder={isConnected ? 'Select source chain' : 'Connect wallet first'}
+            onRetry={refreshChains}
+            failureCount={failureCount}
+            maxRetries={maxRetries}
           />
         </div>
 
-        {/* Amount Input (placeholder for token integration) */}
+        {/* ERR-001: Token Load Error Display */}
+        {tokenLoadError && sourceChain && (
+          <TokenLoadError
+            onRetry={handleRetryTokenLoad}
+            isRetrying={isRetryingTokens}
+          />
+        )}
+
+        {/* Amount Input with Token Selector */}
         <div className="space-y-2">
           <label className="text-small text-text-secondary">Amount</label>
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
             <Input
               placeholder="0.00"
               type="text"
               inputMode="decimal"
               value={amount}
               onChange={handleAmountChange}
-              disabled={!sourceChain || needsSwitch}
-              className="pr-20"
+              disabled={!sourceChain || needsSwitch || !sourceToken}
+              className="flex-1"
+              aria-label="Bridge amount"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <span className="text-small text-text-muted">
-                {/* Token selector will go here - Story 2.7 */}
-                Token
-              </span>
-            </div>
+            <TokenSelector
+              value={sourceToken}
+              onChange={handleTokenChange}
+              tokens={availableTokens}
+              isLoading={isLoadingTokens}
+              disabled={!sourceChain || needsSwitch}
+              placeholder="Token"
+            />
           </div>
+          {/* QUOTE-001: Amount Validation Warning */}
+          {!amountValidation.isValid && (
+            <AmountValidationWarning validation={amountValidation} />
+          )}
         </div>
 
         {/* Arrow Divider */}
@@ -383,6 +746,12 @@ export function BridgeForm() {
           isLoading={isQuoteLoading}
           error={quoteError}
         />
+
+        {/* QUOTE-002: Exchange Rate Display */}
+        {quote && <ExchangeRateDisplay quote={quote} />}
+
+        {/* QUOTE-003: Alternative Routes Display */}
+        {quote && <AlternativeRoutesDisplay quote={quote} />}
 
         {/* Balance Warnings */}
         {quote && warnings.length > 0 && (

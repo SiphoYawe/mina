@@ -1,26 +1,25 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, ChevronDown, X, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
-import type { Chain } from '@siphoyawe/mina-sdk';
+import { Search, ChevronDown, X, Loader2 } from 'lucide-react';
+import type { Token } from '@siphoyawe/mina-sdk';
 import { cn } from '@/lib/utils';
 
 /**
- * Popular chains to show first in the list
- * Based on user activity and trading volume
+ * Popular tokens to show first in the list
  */
-const POPULAR_CHAIN_KEYS = ['eth', 'arb', 'bas', 'pol', 'opt', 'bsc', 'ava'];
+const POPULAR_TOKEN_SYMBOLS = ['USDC', 'USDC.E', 'USDT', 'ETH', 'WETH', 'DAI'];
 
-interface ChainSelectorProps {
-  /** Currently selected chain */
-  value: Chain | null;
-  /** Callback when chain is selected */
-  onChange: (chain: Chain) => void;
-  /** List of available chains */
-  chains: Chain[];
-  /** User's total balance per chain (chainId -> formatted balance string) */
-  balances?: Record<number, string>;
-  /** Loading state for chains */
+interface TokenSelectorProps {
+  /** Currently selected token */
+  value: Token | null;
+  /** Callback when token is selected */
+  onChange: (token: Token) => void;
+  /** List of available tokens */
+  tokens: Token[];
+  /** Token balances (address -> formatted balance string) */
+  balances?: Record<string, string>;
+  /** Loading state for tokens */
   isLoading?: boolean;
   /** Error message */
   error?: string | null;
@@ -30,25 +29,18 @@ interface ChainSelectorProps {
   placeholder?: string;
   /** Additional CSS classes */
   className?: string;
-  /** Callback for retrying chain fetch */
-  onRetry?: () => void;
-  /** Current retry attempt count */
-  failureCount?: number;
-  /** Maximum number of retries */
-  maxRetries?: number;
 }
 
 /**
- * Chain icon component with fallback
- * Issue 8 fix: Reset hasError when chain.id changes
+ * Token icon component with fallback
  */
-function ChainIcon({ chain, size = 'md' }: { chain: Chain; size?: 'sm' | 'md' | 'lg' }) {
+function TokenIcon({ token, size = 'md' }: { token: Token; size?: 'sm' | 'md' | 'lg' }) {
   const [hasError, setHasError] = useState(false);
 
-  // Reset error state when chain changes
+  // Reset error state when token changes
   useEffect(() => {
     setHasError(false);
-  }, [chain.id]);
+  }, [token.address]);
 
   const sizeClasses = {
     sm: 'w-5 h-5',
@@ -56,8 +48,8 @@ function ChainIcon({ chain, size = 'md' }: { chain: Chain; size?: 'sm' | 'md' | 
     lg: 'w-10 h-10',
   };
 
-  if (hasError || !chain.logoUrl) {
-    // Fallback: First letter of chain name with gradient background
+  if (hasError || !token.logoUrl) {
+    // Fallback: First 2 letters of symbol with gradient background
     return (
       <div
         className={cn(
@@ -66,7 +58,7 @@ function ChainIcon({ chain, size = 'md' }: { chain: Chain; size?: 'sm' | 'md' | 
         )}
       >
         <span className="text-bg-base font-semibold text-caption">
-          {chain.name.charAt(0).toUpperCase()}
+          {token.symbol.slice(0, 2).toUpperCase()}
         </span>
       </div>
     );
@@ -74,8 +66,8 @@ function ChainIcon({ chain, size = 'md' }: { chain: Chain; size?: 'sm' | 'md' | 
 
   return (
     <img
-      src={chain.logoUrl}
-      alt={`${chain.name} logo`}
+      src={token.logoUrl}
+      alt={`${token.symbol} logo`}
       className={cn(sizeClasses[size], 'rounded-full flex-shrink-0 object-contain')}
       onError={() => setHasError(true)}
     />
@@ -83,7 +75,7 @@ function ChainIcon({ chain, size = 'md' }: { chain: Chain; size?: 'sm' | 'md' | 
 }
 
 /**
- * Issue 1 fix: Pure function without useCallback - no dependencies needed
+ * Highlight matching text in search results
  */
 function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query) return text;
@@ -103,18 +95,41 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 }
 
 /**
- * Single chain option in the dropdown list
- * Issue 4 fix: Wrapped with React.memo to prevent re-renders on every keystroke
+ * Loading skeleton for token rows
  */
-const ChainOption = memo(function ChainOption({
-  chain,
+function TokenSkeleton() {
+  return (
+    <div className="w-full flex items-center gap-3 px-3 py-3 rounded-lg animate-pulse">
+      {/* Token icon skeleton */}
+      <div className="w-8 h-8 rounded-full bg-bg-elevated flex-shrink-0" />
+
+      {/* Token name/symbol skeleton */}
+      <div className="flex-1 min-w-0">
+        <div className="h-4 w-16 bg-bg-elevated rounded mb-1.5" />
+        <div className="h-3 w-24 bg-bg-elevated rounded" />
+      </div>
+
+      {/* Balance skeleton */}
+      <div className="flex flex-col items-end flex-shrink-0">
+        <div className="h-4 w-12 bg-bg-elevated rounded mb-1" />
+        <div className="h-3 w-10 bg-bg-elevated rounded" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Single token option in the dropdown list
+ */
+const TokenOption = memo(function TokenOption({
+  token,
   balance,
   isSelected,
   searchQuery,
   onClick,
   isFocused,
 }: {
-  chain: Chain;
+  token: Token;
   balance?: string;
   isSelected: boolean;
   searchQuery: string;
@@ -124,8 +139,6 @@ const ChainOption = memo(function ChainOption({
   return (
     <button
       type="button"
-      role="option"
-      aria-selected={isSelected}
       onClick={onClick}
       className={cn(
         'w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-micro',
@@ -134,18 +147,29 @@ const ChainOption = memo(function ChainOption({
         isFocused && 'bg-bg-elevated ring-2 ring-accent-primary/50'
       )}
     >
-      <ChainIcon chain={chain} size="md" />
+      <TokenIcon token={token} size="md" />
 
       <div className="flex-1 text-left min-w-0">
         <p className={cn(
           'text-small font-medium truncate',
           isSelected ? 'text-accent-primary' : 'text-text-primary'
         )}>
-          {highlightMatch(chain.name, searchQuery)}
+          {highlightMatch(token.symbol, searchQuery)}
         </p>
+        <p className="text-caption text-text-muted truncate">
+          {highlightMatch(token.name, searchQuery)}
+        </p>
+      </div>
+
+      <div className="flex flex-col items-end flex-shrink-0">
         {balance && (
-          <p className="text-caption text-text-muted truncate">
-            ${balance}
+          <p className="text-small text-text-primary font-medium">
+            {balance}
+          </p>
+        )}
+        {token.priceUsd && (
+          <p className="text-caption text-text-muted">
+            ${token.priceUsd.toFixed(2)}
           </p>
         )}
       </div>
@@ -158,32 +182,28 @@ const ChainOption = memo(function ChainOption({
 });
 
 /**
- * Chain Selector Component
+ * Token Selector Component
  *
- * Displays a dropdown for selecting the source chain in bridge transactions.
+ * Displays a dropdown for selecting the source token in bridge transactions.
  * Features:
- * - Searchable chain list
- * - Popular chains shown first
- * - Chain icons and balances
+ * - Searchable token list
+ * - Popular tokens shown first
+ * - Token icons, names, and balances
  * - Keyboard navigation support
  */
-export function ChainSelector({
+export function TokenSelector({
   value,
   onChange,
-  chains,
+  tokens,
   balances = {},
   isLoading = false,
   error = null,
   disabled = false,
-  placeholder = 'Select chain',
+  placeholder = 'Select token',
   className,
-  onRetry,
-  failureCount = 0,
-  maxRetries = 3,
-}: ChainSelectorProps) {
+}: TokenSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  // Issue 5 fix: Add focusedIndex for keyboard navigation
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -202,7 +222,7 @@ export function ChainSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus search input when dropdown opens and reset focusedIndex
+  // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -210,42 +230,52 @@ export function ChainSelector({
     }
   }, [isOpen]);
 
-  // Sort and filter chains - moved before keyboard handler that uses it
-  const sortedAndFilteredChains = useMemo(() => {
+  // Sort and filter tokens
+  const sortedAndFilteredTokens = useMemo(() => {
     // Filter by search
-    let filtered = chains;
+    let filtered = tokens;
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = chains.filter(
-        (chain) =>
-          chain.name.toLowerCase().includes(searchLower) ||
-          chain.key.toLowerCase().includes(searchLower)
+      filtered = tokens.filter(
+        (token) =>
+          token.symbol.toLowerCase().includes(searchLower) ||
+          token.name.toLowerCase().includes(searchLower) ||
+          token.address.toLowerCase().includes(searchLower)
       );
     }
 
-    // Sort: popular chains first, then alphabetically
+    // Sort: popular tokens first, then by balance, then alphabetically
     return [...filtered].sort((a, b) => {
-      const aIsPopular = POPULAR_CHAIN_KEYS.includes(a.key);
-      const bIsPopular = POPULAR_CHAIN_KEYS.includes(b.key);
+      const aSymbolUpper = a.symbol.toUpperCase();
+      const bSymbolUpper = b.symbol.toUpperCase();
+      const aIsPopular = POPULAR_TOKEN_SYMBOLS.includes(aSymbolUpper);
+      const bIsPopular = POPULAR_TOKEN_SYMBOLS.includes(bSymbolUpper);
 
       if (aIsPopular && !bIsPopular) return -1;
       if (!aIsPopular && bIsPopular) return 1;
       if (aIsPopular && bIsPopular) {
-        return POPULAR_CHAIN_KEYS.indexOf(a.key) - POPULAR_CHAIN_KEYS.indexOf(b.key);
+        return POPULAR_TOKEN_SYMBOLS.indexOf(aSymbolUpper) - POPULAR_TOKEN_SYMBOLS.indexOf(bSymbolUpper);
       }
-      return a.name.localeCompare(b.name);
-    });
-  }, [chains, search]);
 
-  // Handle chain selection
-  const handleSelect = useCallback((chain: Chain) => {
-    onChange(chain);
+      // Sort by balance if available
+      const aBalance = balances[a.address.toLowerCase()];
+      const bBalance = balances[b.address.toLowerCase()];
+      if (aBalance && !bBalance) return -1;
+      if (!aBalance && bBalance) return 1;
+
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [tokens, search, balances]);
+
+  // Handle token selection
+  const handleSelect = useCallback((token: Token) => {
+    onChange(token);
     setIsOpen(false);
     setSearch('');
     setFocusedIndex(-1);
   }, [onChange]);
 
-  // Issue 5 fix: Handle keyboard navigation with Arrow keys and Enter
+  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isOpen) return;
@@ -259,23 +289,23 @@ export function ChainSelector({
         case 'ArrowDown':
           event.preventDefault();
           setFocusedIndex((prev) => {
-            const maxIndex = sortedAndFilteredChains.length - 1;
+            const maxIndex = sortedAndFilteredTokens.length - 1;
             return prev < maxIndex ? prev + 1 : 0;
           });
           break;
         case 'ArrowUp':
           event.preventDefault();
           setFocusedIndex((prev) => {
-            const maxIndex = sortedAndFilteredChains.length - 1;
+            const maxIndex = sortedAndFilteredTokens.length - 1;
             return prev > 0 ? prev - 1 : maxIndex;
           });
           break;
         case 'Enter':
           event.preventDefault();
-          if (focusedIndex >= 0 && focusedIndex < sortedAndFilteredChains.length) {
-            const selectedChain = sortedAndFilteredChains[focusedIndex];
-            if (selectedChain) {
-              handleSelect(selectedChain);
+          if (focusedIndex >= 0 && focusedIndex < sortedAndFilteredTokens.length) {
+            const selectedToken = sortedAndFilteredTokens[focusedIndex];
+            if (selectedToken) {
+              handleSelect(selectedToken);
             }
           }
           break;
@@ -284,7 +314,7 @@ export function ChainSelector({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, focusedIndex, sortedAndFilteredChains, handleSelect]);
+  }, [isOpen, focusedIndex, sortedAndFilteredTokens, handleSelect]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -313,11 +343,11 @@ export function ChainSelector({
         type="button"
         onClick={toggleDropdown}
         disabled={disabled || isLoading}
-        aria-label="Select source chain"
+        aria-label="Select token"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
-          'w-full flex items-center gap-3 h-12 px-4 rounded-card border transition-all duration-micro',
+          'flex items-center gap-2 h-10 px-3 rounded-lg border transition-all duration-micro',
           'bg-bg-surface text-left',
           isOpen
             ? 'border-accent-primary ring-2 ring-accent-primary/20'
@@ -328,63 +358,36 @@ export function ChainSelector({
       >
         {isLoading ? (
           <>
-            <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
-            <span className="text-body text-text-muted">Loading chains...</span>
+            <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
+            <span className="text-small text-text-muted">Loading...</span>
           </>
         ) : value ? (
           <>
-            <ChainIcon chain={value} size="sm" />
-            <span className="flex-1 text-body text-text-primary truncate">
-              {value.name}
+            <TokenIcon token={value} size="sm" />
+            <span className="text-small text-text-primary font-medium">
+              {value.symbol}
             </span>
           </>
         ) : (
-          <span className="flex-1 text-body text-text-muted">{placeholder}</span>
+          <span className="text-small text-text-muted">{placeholder}</span>
         )}
 
         <ChevronDown
           className={cn(
-            'w-5 h-5 text-text-muted transition-transform duration-standard flex-shrink-0',
+            'w-4 h-4 text-text-muted transition-transform duration-standard flex-shrink-0',
             isOpen && 'rotate-180'
           )}
         />
       </button>
 
-      {/* Error message with retry */}
+      {/* Error message */}
       {error && (
-        <div className="mt-2 p-3 rounded-lg bg-error/10 border border-error/20">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-small text-error font-medium">Failed to load chains</p>
-              <p className="text-caption text-text-muted mt-0.5">{error}</p>
-              {failureCount > 0 && failureCount <= maxRetries && (
-                <p className="text-caption text-text-muted mt-1">
-                  Retrying... ({failureCount}/{maxRetries})
-                </p>
-              )}
-            </div>
-            {onRetry && failureCount >= maxRetries && (
-              <button
-                type="button"
-                onClick={onRetry}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium',
-                  'bg-error/20 text-error hover:bg-error/30 transition-colors',
-                  'focus:outline-none focus:ring-2 focus:ring-error/50'
-                )}
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Retry
-              </button>
-            )}
-          </div>
-        </div>
+        <p className="mt-1 text-caption text-error">{error}</p>
       )}
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-bg-elevated border border-border-default rounded-card shadow-lg overflow-hidden animate-fade-in animate-slide-down">
+        <div className="absolute z-50 w-full sm:w-72 max-w-[calc(100vw-32px)] right-0 mt-2 bg-bg-elevated border border-border-default rounded-card shadow-lg overflow-hidden animate-fade-in animate-slide-down">
           {/* Search Input */}
           <div className="p-3 border-b border-border-subtle">
             <div className="relative">
@@ -394,7 +397,7 @@ export function ChainSelector({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search chains..."
+                placeholder="Search tokens..."
                 className={cn(
                   'w-full h-10 pl-10 pr-10 rounded-lg border border-border-default bg-bg-surface',
                   'text-body text-text-primary placeholder:text-text-muted',
@@ -414,18 +417,30 @@ export function ChainSelector({
             </div>
           </div>
 
-          {/* Chain List */}
-          <div className="max-h-80 overflow-y-auto p-2">
-            {sortedAndFilteredChains.length === 0 ? (
+          {/* Token List */}
+          <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Available tokens">
+            {isLoading ? (
+              /* Loading skeleton state */
+              <div className="space-y-1">
+                <TokenSkeleton />
+                <TokenSkeleton />
+                <TokenSkeleton />
+                <TokenSkeleton />
+                <TokenSkeleton />
+              </div>
+            ) : sortedAndFilteredTokens.length === 0 ? (
               <div className="px-3 py-8 text-center">
-                <p className="text-body text-text-muted">No chains found</p>
+                <p className="text-body text-text-muted">No tokens found</p>
                 <p className="text-caption text-text-muted mt-1">
-                  Try a different search term
+                  {tokens.length === 0
+                    ? 'Select a chain to see available tokens'
+                    : 'Try a different search term'
+                  }
                 </p>
               </div>
             ) : (
               <>
-                {/* Popular Chains Section */}
+                {/* Popular Tokens Section */}
                 {!search && (
                   <div className="mb-2">
                     <p className="px-3 py-1.5 text-caption text-text-muted uppercase tracking-wider">
@@ -434,33 +449,33 @@ export function ChainSelector({
                   </div>
                 )}
 
-                {/* Chain Options - ref for keyboard scroll-into-view */}
-                <div ref={listRef} role="listbox" aria-label="Available chains" className="space-y-1">
-                  {sortedAndFilteredChains.map((chain, index) => {
-                    // Show divider after popular chains
-                    const prevChain = index > 0 ? sortedAndFilteredChains[index - 1] : null;
+                {/* Token Options */}
+                <div ref={listRef} className="space-y-1">
+                  {sortedAndFilteredTokens.map((token, index) => {
+                    // Show divider after popular tokens
+                    const prevToken = index > 0 ? sortedAndFilteredTokens[index - 1] : null;
                     const showDivider =
                       !search &&
-                      prevChain &&
-                      POPULAR_CHAIN_KEYS.includes(prevChain.key) &&
-                      !POPULAR_CHAIN_KEYS.includes(chain.key);
+                      prevToken &&
+                      POPULAR_TOKEN_SYMBOLS.includes(prevToken.symbol.toUpperCase()) &&
+                      !POPULAR_TOKEN_SYMBOLS.includes(token.symbol.toUpperCase());
 
                     return (
-                      <React.Fragment key={chain.id}>
+                      <React.Fragment key={`${token.chainId}-${token.address}`}>
                         {showDivider && (
                           <div className="my-2">
                             <div className="border-t border-border-subtle mx-3" />
                             <p className="px-3 py-1.5 text-caption text-text-muted uppercase tracking-wider">
-                              All Chains
+                              All Tokens
                             </p>
                           </div>
                         )}
-                        <ChainOption
-                          chain={chain}
-                          balance={balances[chain.id]}
-                          isSelected={value?.id === chain.id}
+                        <TokenOption
+                          token={token}
+                          balance={balances[token.address.toLowerCase()]}
+                          isSelected={value?.address.toLowerCase() === token.address.toLowerCase()}
                           searchQuery={search}
-                          onClick={() => handleSelect(chain)}
+                          onClick={() => handleSelect(token)}
                           isFocused={focusedIndex === index}
                         />
                       </React.Fragment>
@@ -471,10 +486,10 @@ export function ChainSelector({
             )}
           </div>
 
-          {/* Footer with chain count */}
+          {/* Footer with token count */}
           <div className="px-3 py-2 border-t border-border-subtle bg-bg-surface">
             <p className="text-caption text-text-muted text-center">
-              {sortedAndFilteredChains.length} chain{sortedAndFilteredChains.length !== 1 ? 's' : ''} available
+              {sortedAndFilteredTokens.length} token{sortedAndFilteredTokens.length !== 1 ? 's' : ''} available
             </p>
           </div>
         </div>
@@ -483,4 +498,4 @@ export function ChainSelector({
   );
 }
 
-export default ChainSelector;
+export default TokenSelector;

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Settings01Icon, FavouriteIcon, Timer02Icon, BitcoinEllipseIcon } from '@hugeicons/core-free-icons';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useSettingsStore, SLIPPAGE_PRESETS, SLIPPAGE_MIN, SLIPPAGE_MAX, ROUTE_OPTIONS, type SlippagePreset } from '@/lib/stores/settings-store';
 import { useReducedMotion } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,9 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [customSlippageInput, setCustomSlippageInput] = useState('');
+  const [slippageInputError, setSlippageInputError] = useState<string | null>(null);
+  const customSlippageInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
   // Mount check for SSR safety with portal
@@ -70,6 +74,66 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
   const handleClose = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  // Escape key handler (SETTINGS-004)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleClose]);
+
+  // Handle custom slippage text input (SETTINGS-001)
+  const handleCustomSlippageInput = useCallback((value: string) => {
+    // Allow empty input
+    if (value === '') {
+      setCustomSlippageInput('');
+      setSlippageInputError(null);
+      return;
+    }
+
+    // Remove % sign if user typed it
+    const cleanedValue = value.replace(/%/g, '').trim();
+    setCustomSlippageInput(cleanedValue);
+
+    // Parse and validate
+    const numValue = parseFloat(cleanedValue);
+
+    if (isNaN(numValue)) {
+      setSlippageInputError('Enter a valid number');
+      return;
+    }
+
+    if (numValue < SLIPPAGE_MIN) {
+      setSlippageInputError(`Min is ${SLIPPAGE_MIN}%`);
+      return;
+    }
+
+    if (numValue > SLIPPAGE_MAX) {
+      setSlippageInputError(`Max is ${SLIPPAGE_MAX}%`);
+      return;
+    }
+
+    // Valid input - clear error and apply
+    setSlippageInputError(null);
+    setSlippage(numValue);
+    onSettingsChange?.();
+  }, [setSlippage, onSettingsChange]);
+
+  // Sync custom input with slider value when slider changes
+  useEffect(() => {
+    if (isCustomSlippage) {
+      setCustomSlippageInput(slippage.toString());
+    }
+  }, [slippage, isCustomSlippage]);
 
   // Portal content for backdrop and panel
   const portalContent = isMounted ? (
@@ -145,14 +209,53 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
               })}
             </div>
 
-            {/* Custom Slider */}
+            {/* Custom Slider with Text Input (SETTINGS-001) */}
             <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-caption text-text-muted">Custom</span>
-                <span className="text-small font-medium text-text-primary tabular-nums">
-                  {slippage}%
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative">
+                    <Input
+                      ref={customSlippageInputRef}
+                      type="text"
+                      inputMode="decimal"
+                      value={customSlippageInput}
+                      onChange={(e) => handleCustomSlippageInput(e.target.value)}
+                      onFocus={() => {
+                        // On focus, show current slippage value if empty
+                        if (!customSlippageInput) {
+                          setCustomSlippageInput(slippage.toString());
+                        }
+                      }}
+                      onBlur={() => {
+                        // On blur, if input is empty or invalid, reset to current slippage
+                        if (!customSlippageInput || slippageInputError) {
+                          setCustomSlippageInput(slippage.toString());
+                          setSlippageInputError(null);
+                        }
+                      }}
+                      placeholder={slippage.toString()}
+                      className={cn(
+                        "w-16 h-8 px-2 pr-5 text-right text-small font-medium tabular-nums",
+                        "bg-bg-surface border rounded-md",
+                        slippageInputError
+                          ? "border-status-error focus:ring-status-error/20"
+                          : "border-border-subtle focus:border-accent-primary"
+                      )}
+                      aria-label="Custom slippage percentage"
+                      aria-invalid={!!slippageInputError}
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-small pointer-events-none">
+                      %
+                    </span>
+                  </div>
+                </div>
               </div>
+              {slippageInputError && (
+                <p className="text-caption text-status-error" role="alert">
+                  {slippageInputError}
+                </p>
+              )}
               <div className="relative">
                 <input
                   type="range"
@@ -187,7 +290,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
                 />
                 {/* Track fill indicator */}
                 <div
-                  className="absolute top-0 left-0 h-2 rounded-full bg-gradient-to-r from-accent-primary/30 to-accent-primary pointer-events-none"
+                  className="absolute top-1/2 -translate-y-1/2 left-0 h-2 rounded-full bg-gradient-to-r from-accent-primary/30 to-accent-primary pointer-events-none"
                   style={{ width: `${((slippage - SLIPPAGE_MIN) / (SLIPPAGE_MAX - SLIPPAGE_MIN)) * 100}%` }}
                 />
               </div>

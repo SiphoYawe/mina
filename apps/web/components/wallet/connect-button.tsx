@@ -12,6 +12,18 @@ import { cn } from '@/lib/utils';
 const truncateAddress = (address: string) =>
   `${address.slice(0, 6)}...${address.slice(-4)}`;
 
+// WALLET-003: Keys to clean up on disconnect
+const WALLET_STORAGE_KEYS_TO_CLEAN = [
+  'wagmi.store',
+  'wagmi.cache',
+  'wagmi.connected',
+  'wagmi.wallet',
+  'wagmi.recentConnectorId',
+  'wc@2',
+  '@w3m',
+  'appkit',
+];
+
 interface ConnectButtonProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
@@ -35,9 +47,16 @@ export function ConnectButton({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // WALLET-002: Track hydration state to prevent loading flash
+  const [isHydrated, setIsHydrated] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // Issue 4 Fix: Track previous connection state to prevent multiple onConnect fires
   const wasConnectedRef = useRef(false);
+
+  // WALLET-002: Mark as hydrated after mount
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -63,11 +82,28 @@ export function ConnectButton({
     open();
   }, [open]);
 
-  const handleCopyAddress = useCallback(async () => {
+  const handleCopyAddress = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (!address) return;
 
     try {
-      await navigator.clipboard.writeText(address);
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(address);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = address;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -75,19 +111,48 @@ export function ConnectButton({
     }
   }, [address]);
 
-  const handleDisconnect = useCallback(() => {
-    // Clear any cached balance data from localStorage
+  const handleDisconnect = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // WALLET-003: Comprehensive localStorage cleanup on disconnect
     try {
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.includes('balance') || key.includes('token'))) {
-          keysToRemove.push(key);
+        if (key) {
+          // Check for balance/token data
+          if (key.includes('balance') || key.includes('token')) {
+            keysToRemove.push(key);
+          }
+          // Check for wallet connection related keys
+          for (const walletKey of WALLET_STORAGE_KEYS_TO_CLEAN) {
+            if (key.startsWith(walletKey) || key.includes(walletKey)) {
+              keysToRemove.push(key);
+              break;
+            }
+          }
         }
       }
+      // Remove all identified keys
       keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Also clear sessionStorage for wallet-related data
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key) {
+          for (const walletKey of WALLET_STORAGE_KEYS_TO_CLEAN) {
+            if (key.startsWith(walletKey) || key.includes(walletKey)) {
+              sessionKeysToRemove.push(key);
+              break;
+            }
+          }
+        }
+      }
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
     } catch (err) {
-      // localStorage might not be available
+      // localStorage/sessionStorage might not be available
+      console.warn('Failed to clean up wallet storage:', err);
     }
 
     disconnect();
@@ -95,13 +160,6 @@ export function ConnectButton({
     onDisconnect?.();
   }, [disconnect, onDisconnect]);
 
-  // Issue 3 Fix: Use chain.blockExplorers?.default?.url for dynamic explorer URL
-  const handleViewOnExplorer = useCallback(() => {
-    if (!address) return;
-    const explorerUrl = chain?.blockExplorers?.default?.url || 'https://etherscan.io';
-    window.open(`${explorerUrl}/address/${address}`, '_blank');
-    setIsDropdownOpen(false);
-  }, [address, chain]);
 
   // Size variants for the button
   const sizeClasses = {
@@ -116,6 +174,25 @@ export function ConnectButton({
     secondary: 'bg-bg-base/70 backdrop-blur-3xl backdrop-saturate-150 text-text-primary border border-border-default/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-bg-surface/60 hover:border-accent-primary/50 hover:shadow-[0_0_15px_rgba(125,211,252,0.15)]',
     ghost: 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
   };
+
+  // WALLET-002: Show skeleton during hydration to prevent flash
+  if (!isHydrated) {
+    return (
+      <div
+        className={cn(
+          'inline-flex items-center justify-center gap-2 rounded-card font-medium animate-pulse',
+          sizeClasses[size],
+          'bg-bg-surface/50 border border-border-default/20',
+          className
+        )}
+      >
+        {/* Skeleton avatar */}
+        <div className="w-5 h-5 rounded-full bg-bg-elevated" />
+        {/* Skeleton text */}
+        <div className="w-24 h-4 rounded bg-bg-elevated" />
+      </div>
+    );
+  }
 
   // Connected state button
   if (isConnected && address) {
@@ -177,6 +254,7 @@ export function ConnectButton({
             <div className="p-2">
               {/* Copy Address */}
               <button
+                type="button"
                 onClick={handleCopyAddress}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-micro"
               >
@@ -191,19 +269,23 @@ export function ConnectButton({
               </button>
 
               {/* View on Explorer */}
-              <button
-                onClick={handleViewOnExplorer}
+              <a
+                href={`${chain?.blockExplorers?.default?.url || 'https://etherscan.io'}/address/${address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsDropdownOpen(false)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-micro"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-small">View on Explorer</span>
-              </button>
+              </a>
 
               {/* Divider */}
               <div className="my-2 border-t border-border-subtle" />
 
               {/* Disconnect */}
               <button
+                type="button"
                 onClick={handleDisconnect}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-error hover:bg-error/10 transition-colors duration-micro"
               >

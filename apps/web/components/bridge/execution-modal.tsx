@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw, WifiOff, TrendingUp, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { ConfettiCelebration } from '@/components/shared/confetti';
 import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { useUIStore } from '@/lib/stores/ui-store';
@@ -19,34 +20,94 @@ import { Button } from '@/components/ui/button';
 import { ExecutionStepper } from './execution-stepper';
 import { useTransactionStore, type UIStepStatus } from '@/lib/stores/transaction-store';
 import { cn } from '@/lib/utils';
+import { useAccount } from 'wagmi';
+import { chainConfigs } from '@/lib/config/chain-configs';
+import { usePearAuth } from '@/lib/pear';
 
 /**
- * Explorer URLs by chain ID
+ * Comprehensive Explorer URLs by chain ID
+ * Covers 40+ EVM chains supported by the app
+ * EXEC-001 Fix: Expanded from 12 to 40+ chains
  */
 const EXPLORER_URLS: Record<number, string> = {
+  // Major L1s
   1: 'https://etherscan.io/tx/',
-  10: 'https://optimistic.etherscan.io/tx/',
   56: 'https://bscscan.com/tx/',
   137: 'https://polygonscan.com/tx/',
   250: 'https://ftmscan.com/tx/',
-  324: 'https://explorer.zksync.io/tx/',
-  8453: 'https://basescan.org/tx/',
-  42161: 'https://arbiscan.io/tx/',
   43114: 'https://snowtrace.io/tx/',
+  100: 'https://gnosisscan.io/tx/',
+  42220: 'https://celoscan.io/tx/',
+  1313161554: 'https://aurorascan.dev/tx/',
+  1284: 'https://moonscan.io/tx/',
+  1285: 'https://moonriver.moonscan.io/tx/',
+
+  // L2s and Rollups
+  10: 'https://optimistic.etherscan.io/tx/',
+  42161: 'https://arbiscan.io/tx/',
+  8453: 'https://basescan.org/tx/',
+  324: 'https://explorer.zksync.io/tx/',
   59144: 'https://lineascan.build/tx/',
   534352: 'https://scrollscan.com/tx/',
+  5000: 'https://explorer.mantle.xyz/tx/',
+  1088: 'https://andromeda-explorer.metis.io/tx/',
+  1101: 'https://zkevm.polygonscan.com/tx/',
+  81457: 'https://blastscan.io/tx/',
+  34443: 'https://explorer.mode.network/tx/',
+  7777777: 'https://explorer.zora.energy/tx/',
+
+  // Other L2s
+  169: 'https://pacific-explorer.manta.network/tx/',
+  252: 'https://fraxscan.com/tx/',
+  288: 'https://bobascan.com/tx/',
+  1116: 'https://scan.coredao.org/tx/',
+  2222: 'https://kavascan.io/tx/',
+  7700: 'https://cantoscan.com/tx/',
+  8217: 'https://klaytnscope.com/tx/',
+  32659: 'https://fsnscan.com/tx/',
+  42170: 'https://nova.arbiscan.io/tx/',
+  204: 'https://opbnbscan.com/tx/',
+  196: 'https://www.oklink.com/xlayer/tx/',
+  1135: 'https://explorer.lisk.com/tx/',
+  167000: 'https://taikoscan.io/tx/',
+  4202: 'https://sepolia.lisk.com/tx/',
+
+  // Testnets
+  5: 'https://goerli.etherscan.io/tx/',
+  11155111: 'https://sepolia.etherscan.io/tx/',
+  421614: 'https://sepolia.arbiscan.io/tx/',
+  84532: 'https://sepolia.basescan.org/tx/',
+  11155420: 'https://sepolia-optimism.etherscan.io/tx/',
+
+  // HyperEVM
   998: 'https://explorer.hyperliquid-testnet.xyz/tx/', // HyperEVM Testnet
   999: 'https://explorer.hyperliquid.xyz/tx/', // HyperEVM Mainnet
 };
 
 /**
  * Get explorer URL for a transaction
+ * EXEC-001 Fix: Falls back to chainConfigs if not in static map
  */
 function getExplorerUrl(chainId: number | null, txHash: string): string | null {
-  if (!chainId || !EXPLORER_URLS[chainId]) {
+  if (!chainId) {
     return null;
   }
-  return `${EXPLORER_URLS[chainId]}${txHash}`;
+
+  // First try the static explorer URLs
+  if (EXPLORER_URLS[chainId]) {
+    return `${EXPLORER_URLS[chainId]}${txHash}`;
+  }
+
+  // Fall back to chainConfigs for additional chains
+  const chainConfig = chainConfigs[chainId];
+  if (chainConfig?.blockExplorerUrls?.[0]) {
+    const baseUrl = chainConfig.blockExplorerUrls[0];
+    // Ensure URL ends with /tx/
+    const explorerUrl = baseUrl.endsWith('/') ? `${baseUrl}tx/` : `${baseUrl}/tx/`;
+    return `${explorerUrl}${txHash}`;
+  }
+
+  return null;
 }
 
 /**
@@ -96,11 +157,17 @@ function SuccessContent({
   onClose: () => void;
   startedAt: number | null;
 }) {
+  const router = useRouter();
   const sourceExplorerUrl = txHash && fromChainId ? getExplorerUrl(fromChainId, txHash) : null;
   const destExplorerUrl = receivingTxHash && toChainId ? getExplorerUrl(toChainId, receivingTxHash) : null;
   const depositExplorerUrl = depositTxHash ? getExplorerUrl(999, depositTxHash) : null;
   const { triggerConfetti } = useUIStore();
   const { sourceChain, sourceToken, amount } = useBridgeStore();
+
+  // Pear Protocol auth
+  const { isAuthenticated: isPearAuthenticated, isAuthenticating: isPearAuthenticating, authenticate: authenticatePear, authError: pearAuthError } = usePearAuth();
+  const [showPearPrompt, setShowPearPrompt] = useState(false);
+  const [pearAuthDeclined, setPearAuthDeclined] = useState(false);
 
   // Build receipt data for sharing
   const receiptData: ShareReceiptData | null = txHash && sourceChain && sourceToken && receivedAmount ? {
@@ -116,6 +183,37 @@ function SuccessContent({
   useEffect(() => {
     triggerConfetti();
   }, [triggerConfetti]);
+
+  // Show Pear prompt after 1 second (only if auto-deposit completed and not already authenticated)
+  useEffect(() => {
+    if (autoDepositCompleted && !isPearAuthenticated && !pearAuthDeclined) {
+      const timer = setTimeout(() => {
+        setShowPearPrompt(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDepositCompleted, isPearAuthenticated, pearAuthDeclined]);
+
+  // Handle Pear authentication
+  const handleEnableTrading = useCallback(async () => {
+    const success = await authenticatePear();
+    if (success) {
+      onClose();
+      router.push('/trade');
+    }
+  }, [authenticatePear, onClose, router]);
+
+  // Handle declining Pear auth
+  const handleDeclinePear = useCallback(() => {
+    setPearAuthDeclined(true);
+    setShowPearPrompt(false);
+  }, []);
+
+  // Go directly to trade page if already authenticated
+  const handleGoToTrade = useCallback(() => {
+    onClose();
+    router.push('/trade');
+  }, [onClose, router]);
 
   return (
     <>
@@ -172,6 +270,50 @@ function SuccessContent({
           )}
         </div>
 
+        {/* Pear Trading Prompt - Show after auto-deposit complete */}
+        {autoDepositCompleted && showPearPrompt && !isPearAuthenticated && (
+          <div className="mb-6 p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-card animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <TrendingUp className="w-5 h-5 text-accent-primary" />
+              <h4 className="text-body font-medium text-text-primary">Start Pair Trading</h4>
+            </div>
+            <p className="text-small text-text-muted mb-4">
+              Sign to enable pair trading on Hyperliquid via Pear Protocol. Trade 30,000+ pairs with advanced strategies.
+            </p>
+            {pearAuthError && (
+              <p className="text-small text-error mb-3">{pearAuthError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                size="sm"
+                onClick={handleEnableTrading}
+                disabled={isPearAuthenticating}
+              >
+                {isPearAuthenticating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Enable Trading
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeclinePear}
+                disabled={isPearAuthenticating}
+              >
+                Later
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Explorer links */}
         <div className="space-y-3 mb-2">
           {sourceExplorerUrl && (
@@ -218,19 +360,32 @@ function SuccessContent({
       </DialogBody>
 
       <DialogFooter className="flex-col gap-3">
-        {/* Primary CTA: Start Trading (if auto-deposit) or Bridge Again */}
+        {/* Primary CTA based on state */}
         {autoDepositCompleted ? (
-          <a
-            href={HYPERLIQUID_TRADING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full"
-          >
-            <Button className="w-full hover:shadow-glow" size="lg">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Start Trading on Hyperliquid
+          isPearAuthenticated ? (
+            // Already authenticated with Pear - go to trade page
+            <Button
+              className="w-full hover:shadow-glow"
+              size="lg"
+              onClick={handleGoToTrade}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Start Pair Trading
             </Button>
-          </a>
+          ) : (
+            // Not authenticated - link to Hyperliquid (fallback)
+            <a
+              href={HYPERLIQUID_TRADING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
+            >
+              <Button className="w-full hover:shadow-glow" size="lg">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Start Trading on Hyperliquid
+              </Button>
+            </a>
+          )
         ) : (
           <Button
             className="w-full"
@@ -352,14 +507,24 @@ function ErrorDetails({
 
 /**
  * Recovery Guidance Component
+ * ERR-003 Fix: Added wallet disconnect handling
  */
-function RecoveryGuidance({ recoveryAction, isDepositError }: { recoveryAction?: string; isDepositError?: boolean }) {
-  if (!recoveryAction && !isDepositError) return null;
+function RecoveryGuidance({ recoveryAction, isDepositError, isWalletDisconnect }: { recoveryAction?: string; isDepositError?: boolean; isWalletDisconnect?: boolean }) {
+  if (!recoveryAction && !isDepositError && !isWalletDisconnect) return null;
 
   const guidance = getRecoverySuggestion(recoveryAction || '');
 
   return (
     <div className="p-3 bg-bg-elevated rounded-lg border border-border-subtle text-left">
+      {/* Wallet disconnect warning */}
+      {isWalletDisconnect && (
+        <div className="flex items-center gap-2 mb-3 p-2 rounded bg-warning/10 border border-warning/20">
+          <WifiOff className="w-4 h-4 text-warning flex-shrink-0" />
+          <p className="text-small text-warning font-medium">
+            Wallet connection lost
+          </p>
+        </div>
+      )}
       {isDepositError && (
         <div className="flex items-center gap-2 mb-3 p-2 rounded bg-success/10 border border-success/20">
           <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
@@ -387,6 +552,7 @@ function RecoveryGuidance({ recoveryAction, isDepositError }: { recoveryAction?:
 
 /**
  * Failed state content
+ * ERR-003 Fix: Added wallet disconnect error handling
  */
 function FailedContent({
   error,
@@ -411,6 +577,7 @@ function FailedContent({
   // Explicitly check for true, not just "not false"
   const canRetry = errorDetails?.recoverable === true;
   const isDepositError = errorDetails?.code === 'DEPOSIT_FAILED';
+  const isWalletDisconnect = errorDetails?.code === 'WALLET_DISCONNECTED';
   const userMessage = errorDetails?.userMessage || error || 'An error occurred during the bridge transaction.';
 
   return (
@@ -440,12 +607,13 @@ function FailedContent({
           </div>
         )}
 
-        {/* Recovery guidance for non-recoverable errors or deposit errors */}
-        {(!canRetry || isDepositError) && (
+        {/* Recovery guidance for non-recoverable errors, deposit errors, or wallet disconnect */}
+        {(!canRetry || isDepositError || isWalletDisconnect) && (
           <div className="mb-4">
             <RecoveryGuidance
               recoveryAction={errorDetails?.recoveryAction}
               isDepositError={isDepositError}
+              isWalletDisconnect={isWalletDisconnect}
             />
           </div>
         )}
@@ -534,6 +702,8 @@ function getRecoverySuggestion(action: string): string {
       return 'You can retry the deposit or deposit manually from the Hyperliquid app.';
     case 'manual_deposit':
       return 'Your USDC is on HyperEVM. You can deposit manually from the Hyperliquid app.';
+    case 'reconnect_wallet':
+      return 'Reconnect your wallet and try the transaction again. If a transaction was already submitted, check the explorer - it may still complete successfully.';
     default:
       return 'Please try again or contact support if the issue persists.';
   }
@@ -625,7 +795,42 @@ export function ExecutionModal({
     startedAt,
     closeModal,
     reset,
+    setFailed,
   } = useTransactionStore();
+
+  // ERR-003 Fix: Monitor wallet connection state during execution
+  const { isConnected, isDisconnected } = useAccount();
+  const wasConnectedRef = useRef(isConnected);
+  const [walletDisconnected, setWalletDisconnected] = useState(false);
+
+  // Detect wallet disconnect during transaction
+  useEffect(() => {
+    // Only monitor during active execution
+    if (status === 'executing' || status === 'pending') {
+      // Check if wallet was connected before and is now disconnected
+      if (wasConnectedRef.current && isDisconnected) {
+        console.warn('[ExecutionModal] Wallet disconnected during transaction');
+        setWalletDisconnected(true);
+        setFailed({
+          message: 'Wallet disconnected during transaction',
+          code: 'WALLET_DISCONNECTED',
+          recoverable: false,
+          recoveryAction: 'reconnect_wallet',
+          userMessage: 'Your wallet was disconnected during the transaction. Please reconnect your wallet and try again. Note: If the transaction was already submitted, it may still complete.',
+        });
+      }
+    }
+
+    // Update ref for next comparison
+    wasConnectedRef.current = isConnected;
+  }, [isConnected, isDisconnected, status, setFailed]);
+
+  // Reset wallet disconnected state when modal closes or resets
+  useEffect(() => {
+    if (!isModalOpen) {
+      setWalletDisconnected(false);
+    }
+  }, [isModalOpen]);
 
   // Handle close - only allow if not executing or retrying
   const handleClose = useCallback(() => {
@@ -637,10 +842,15 @@ export function ExecutionModal({
     }
   }, [status, isRetrying, closeModal, reset]);
 
-  // Handle retry
+  // Handle retry with error handling to prevent unhandled promise rejection
   const handleRetry = useCallback(async () => {
     if (onRetry) {
-      await onRetry();
+      try {
+        await onRetry();
+      } catch (err) {
+        // Error is already handled by the onRetry callback and transaction store
+        console.error('[ExecutionModal] Retry failed:', err);
+      }
     }
   }, [onRetry]);
 
