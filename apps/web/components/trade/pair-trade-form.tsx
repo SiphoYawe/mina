@@ -102,19 +102,19 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
             </div>
           </div>
 
-          {/* Asset Selection */}
-          <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+          {/* Asset Selection - MOBILE-002 Fix: Better mobile layout */}
+          <div className="grid grid-cols-[1fr,auto,1fr] gap-2 sm:gap-4 items-center">
             {/* Long Asset */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <label className="text-caption text-text-muted flex items-center gap-1">
                 <TrendingUp className="w-3 h-3 text-success" />
-                Long
+                <span className="hidden xs:inline">Long</span>
               </label>
               <div className="relative">
                 <select
                   value={longAsset}
                   onChange={(e) => setLongAsset(e.target.value)}
-                  className="w-full h-12 px-4 bg-bg-elevated border border-border-subtle rounded-card text-text-primary appearance-none focus:border-accent-primary focus:outline-none"
+                  className="w-full h-10 sm:h-12 px-2 sm:px-4 bg-bg-elevated border border-border-subtle rounded-card text-text-primary text-sm sm:text-base appearance-none focus:border-accent-primary focus:outline-none"
                 >
                   {['BTC', 'ETH', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'AAVE', 'ARB', 'OP'].map((asset) => (
                     <option key={asset} value={asset}>{asset}</option>
@@ -124,30 +124,30 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
             </div>
 
             {/* Swap Icon */}
-            <div className="pt-6">
+            <div className="pt-5 sm:pt-6">
               <button
                 onClick={() => {
                   const temp = longAsset;
                   setLongAsset(shortAsset);
                   setShortAsset(temp);
                 }}
-                className="p-2 rounded-full bg-bg-elevated border border-border-subtle hover:border-accent-primary transition-colors"
+                className="p-1.5 sm:p-2 rounded-full bg-bg-elevated border border-border-subtle hover:border-accent-primary transition-colors"
               >
-                <ArrowLeftRight className="w-4 h-4 text-text-muted" />
+                <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-muted" />
               </button>
             </div>
 
             {/* Short Asset */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <label className="text-caption text-text-muted flex items-center gap-1">
                 <TrendingDown className="w-3 h-3 text-error" />
-                Short
+                <span className="hidden xs:inline">Short</span>
               </label>
               <div className="relative">
                 <select
                   value={shortAsset}
                   onChange={(e) => setShortAsset(e.target.value)}
-                  className="w-full h-12 px-4 bg-bg-elevated border border-border-subtle rounded-card text-text-primary appearance-none focus:border-accent-primary focus:outline-none"
+                  className="w-full h-10 sm:h-12 px-2 sm:px-4 bg-bg-elevated border border-border-subtle rounded-card text-text-primary text-sm sm:text-base appearance-none focus:border-accent-primary focus:outline-none"
                 >
                   {['ETH', 'BTC', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'AAVE', 'ARB', 'OP'].map((asset) => (
                     <option key={asset} value={asset}>{asset}</option>
@@ -170,14 +170,15 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
                 className="pl-8 h-12 text-body font-mono"
               />
             </div>
-            <div className="flex gap-2">
+            {/* MOBILE-003 Fix: Better button sizing on mobile */}
+            <div className="flex gap-1.5 sm:gap-2">
               {[100, 500, 1000, 5000].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setUsdValue(String(amount))}
-                  className="flex-1 py-1.5 text-caption text-text-muted bg-bg-elevated rounded border border-border-subtle hover:border-border-default transition-colors"
+                  className="flex-1 py-1 sm:py-1.5 text-[11px] sm:text-caption text-text-muted bg-bg-elevated rounded border border-border-subtle hover:border-border-default transition-colors"
                 >
-                  ${amount}
+                  ${amount >= 1000 ? `${amount / 1000}k` : amount}
                 </button>
               ))}
             </div>

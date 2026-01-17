@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { ReceiptDisplay } from './receipt-display';
+import { ReceiptErrorBoundary } from './error-boundary';
 
 export const metadata: Metadata = {
   title: 'Bridge Receipt - Mina',
@@ -30,8 +31,10 @@ function LoadingReceipt() {
 
 export default function ReceiptPage() {
   return (
-    <Suspense fallback={<LoadingReceipt />}>
-      <ReceiptDisplay />
-    </Suspense>
+    <ReceiptErrorBoundary>
+      <Suspense fallback={<LoadingReceipt />}>
+        <ReceiptDisplay />
+      </Suspense>
+    </ReceiptErrorBoundary>
   );
 }

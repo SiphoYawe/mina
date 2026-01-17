@@ -415,23 +415,23 @@ export function QuoteDisplay({
         </div>
       </div>
 
-      {/* Quick stats row */}
-      <div className="flex items-center justify-between px-2 text-small">
-        <div className="flex items-center gap-1.5 text-text-muted">
-          <span className="text-text-secondary font-medium">
+      {/* Quick stats row - MOBILE-001 Fix: Better spacing and wrapping on mobile */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-small">
+        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
+          <span className="text-text-secondary font-medium text-[13px] sm:text-small">
             {formatUsd(quote.fees.totalUsd)}
           </span>
-          <span>fees</span>
+          <span className="text-[13px] sm:text-small">fees</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-text-muted">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{formatTime(quote.estimatedTime)}</span>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
+          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span className="text-[13px] sm:text-small">{formatTime(quote.estimatedTime)}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-text-muted">
-          <Layers className="w-3.5 h-3.5" />
-          <span>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted">
+          <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span className="text-[13px] sm:text-small">
             {quote.steps.length} {quote.steps.length === 1 ? 'step' : 'steps'}
           </span>
         </div>

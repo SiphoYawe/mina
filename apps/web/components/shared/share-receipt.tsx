@@ -204,15 +204,15 @@ export function ShareReceiptButton({
           Share
         </Button>
 
-        {/* Popover */}
+        {/* Popover - MOBILE-001 Fix: Better positioning on mobile */}
         {isOpen && (
           <div
             ref={popoverRef}
             className={cn(
-              'absolute z-50 mt-2 w-52 p-2',
+              'absolute z-50 mt-2 w-52 max-w-[calc(100vw-2rem)] p-2',
               'bg-bg-elevated border border-border-subtle rounded-xl shadow-xl',
               'animate-in fade-in slide-in-from-top-1 duration-200',
-              // Position above if near bottom of screen
+              // Position right-aligned but constrained to viewport
               'right-0 top-full'
             )}
           >

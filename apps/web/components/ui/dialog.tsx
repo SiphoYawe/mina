@@ -64,7 +64,14 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
       <div
         ref={ref}
         className={cn(
-          'relative w-full max-w-md bg-bg-surface border border-border-default rounded-card shadow-lg',
+          // Base styles
+          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg',
+          // DIALOG-003 Fix: Better responsive sizing
+          'max-w-[calc(100vw-2rem)]',
+          // DIALOG-001 Fix: Proper max-height with scrolling for tall content
+          'max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)]',
+          'overflow-y-auto overflow-x-hidden',
+          // Entrance animation
           'animate-in fade-in zoom-in-95 duration-200',
           className
         )}
@@ -73,7 +80,8 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         {showCloseButton && onClose && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            // DIALOG-002 Fix: Proper z-index and positioning
+            className="absolute right-3 top-3 sm:right-4 sm:top-4 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors z-20"
           >
             <X className="w-4 h-4" />
           </button>

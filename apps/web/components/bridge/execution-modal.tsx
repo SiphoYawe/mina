@@ -724,9 +724,11 @@ function getRecoverySuggestion(action: string): string {
 /**
  * Executing state content with Globe Visualization (Story 9.6)
  *
- * Layout:
- * - Desktop: Globe on left, stepper on right
- * - Mobile: Globe on top, stepper below
+ * REDESIGN: "Cosmic Luxe" - Globe as hero element with premium dark aesthetic
+ * - Vertical stack layout for all screen sizes
+ * - Large, prominent globe with atmospheric glow
+ * - Compact horizontal stepper below
+ * - Subtle animations and premium polish
  */
 function ExecutingContent({
   steps,
@@ -737,46 +739,161 @@ function ExecutingContent({
   currentStepIndex: number;
   progress: number;
 }) {
+  const currentStep = steps[currentStepIndex];
+  const stepLabels = ['Approve', 'Swap', 'Bridge', 'Deposit'];
+
   return (
-    <DialogBody>
-      {/* Progress bar */}
-      <div className="mb-4">
-        <div className="flex justify-between text-caption text-text-muted mb-2">
-          <span>Progress</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-accent-primary to-accent-muted transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+    <DialogBody className="relative overflow-hidden">
+      {/* Atmospheric background glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-30"
+          style={{
+            background: 'radial-gradient(circle, rgba(125,211,252,0.15) 0%, rgba(14,165,233,0.05) 40%, transparent 70%)',
+            filter: 'blur(40px)',
+          }}
+        />
       </div>
 
-      {/* Globe + Stepper Layout (responsive) */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-        {/* Globe Visualization */}
-        <div className="w-full md:w-1/2 flex-shrink-0">
-          <div className="aspect-square max-w-[220px] mx-auto md:max-w-none">
-            <GlobeVisualization
-              className="w-full h-full rounded-lg overflow-hidden"
+      {/* Hero Globe Container */}
+      <div className="relative flex flex-col items-center">
+        {/* Globe Visualization - HERO SIZE */}
+        <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] md:w-[360px] md:h-[360px]">
+          {/* Outer glow ring */}
+          <div
+            className="absolute inset-0 rounded-full animate-pulse"
+            style={{
+              background: 'radial-gradient(circle, transparent 50%, rgba(125,211,252,0.1) 70%, transparent 100%)',
+            }}
+          />
+
+          {/* Globe wrapper with subtle border glow */}
+          <div className="absolute inset-2 rounded-full overflow-hidden ring-1 ring-accent-primary/20 shadow-[0_0_60px_rgba(125,211,252,0.15)]">
+            <GlobeVisualization className="w-full h-full" />
+          </div>
+
+          {/* Orbital progress indicator */}
+          <svg
+            className="absolute inset-0 w-full h-full -rotate-90"
+            viewBox="0 0 100 100"
+          >
+            {/* Background track */}
+            <circle
+              cx="50"
+              cy="50"
+              r="48"
+              fill="none"
+              stroke="rgba(125,211,252,0.1)"
+              strokeWidth="1"
             />
+            {/* Progress arc */}
+            <circle
+              cx="50"
+              cy="50"
+              r="48"
+              fill="none"
+              stroke="url(#progressGradient)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray={`${progress * 3.01} 301`}
+              className="transition-all duration-500 ease-out"
+              style={{
+                filter: 'drop-shadow(0 0 6px rgba(125,211,252,0.5))',
+              }}
+            />
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#7DD3FC" />
+                <stop offset="100%" stopColor="#0ECC83" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* Progress percentage badge */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-bg-elevated/90 backdrop-blur-sm rounded-full border border-accent-primary/30 shadow-lg">
+            <span className="text-lg font-mono font-bold bg-gradient-to-r from-accent-primary to-success bg-clip-text text-transparent">
+              {progress}%
+            </span>
           </div>
         </div>
 
-        {/* Stepper */}
-        <div className="w-full md:w-1/2 flex flex-col justify-center">
-          <ExecutionStepper steps={steps} currentStepIndex={currentStepIndex} />
+        {/* Current Step Indicator */}
+        <div className="mt-6 text-center">
+          <p className="text-body text-text-primary font-medium">
+            {currentStep?.message || 'Processing...'}
+          </p>
+          <p className="text-caption text-text-muted mt-1">
+            Step {currentStepIndex + 1} of {steps.length}
+          </p>
         </div>
       </div>
 
-      {/* Warning message */}
-      <div className="mt-4 p-3 rounded-lg bg-bg-elevated border border-border-subtle">
-        <p className="text-caption text-text-muted text-center">
-          Please do not close this window while the transaction is in progress.
-          This may take a few minutes.
-        </p>
+      {/* Compact Horizontal Stepper */}
+      <div className="mt-6 px-2">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const isCompleted = step.status === 'completed';
+            const isActive = step.status === 'active';
+            const isFailed = step.status === 'failed';
+            const isPending = step.status === 'pending';
+
+            return (
+              <React.Fragment key={step.stepId}>
+                {/* Step dot */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300',
+                      isCompleted && 'bg-success text-bg-base shadow-[0_0_12px_rgba(14,204,131,0.4)]',
+                      isActive && 'bg-accent-primary text-bg-base animate-pulse shadow-[0_0_12px_rgba(125,211,252,0.5)]',
+                      isFailed && 'bg-error text-white',
+                      isPending && 'bg-bg-elevated border border-border-default text-text-muted'
+                    )}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-4 h-4" />
+                    ) : isActive ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isFailed ? (
+                      '!'
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  <span className={cn(
+                    'text-caption font-medium whitespace-nowrap',
+                    isCompleted && 'text-success',
+                    isActive && 'text-accent-primary',
+                    isFailed && 'text-error',
+                    isPending && 'text-text-muted'
+                  )}>
+                    {stepLabels[index] || 'Step'}
+                  </span>
+                </div>
+
+                {/* Connector line */}
+                {index < steps.length - 1 && (
+                  <div className="flex-1 h-0.5 mx-2 mb-6">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500',
+                        isCompleted
+                          ? 'bg-gradient-to-r from-success to-success/50'
+                          : 'bg-border-default'
+                      )}
+                    />
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Minimal warning */}
+      <p className="mt-4 text-caption text-text-muted text-center opacity-60">
+        Keep this window open while bridging
+      </p>
     </DialogBody>
   );
 }
@@ -914,13 +1031,18 @@ export function ExecutionModal({
   // Determine if modal can be closed
   const canClose = status !== 'executing' && status !== 'pending' && !isRetrying;
 
-  // Use wider dialog when executing to accommodate globe + stepper
+  // Use wider dialog when executing to accommodate hero globe
   const isWideMode = status === 'executing' || status === 'pending' || isRetrying;
 
   return (
     <Dialog open={isModalOpen} onOpenChange={canClose ? closeModal : () => {}}>
       <DialogContent
-        className={cn('max-w-lg', isWideMode && 'md:max-w-2xl')}
+        className={cn(
+          // Base sizing for non-executing states
+          'max-w-md',
+          // DIALOG-003 Fix: Hero globe mode needs more width
+          isWideMode && 'max-w-[420px] sm:max-w-[460px] md:max-w-[500px]'
+        )}
         onClose={canClose ? handleClose : undefined}
         showCloseButton={canClose}
       >

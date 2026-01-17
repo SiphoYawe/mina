@@ -9,25 +9,88 @@ import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { chainConfigs } from '@/lib/config/chain-configs';
 
 /**
- * Explorer URLs by chain ID
+ * Comprehensive Explorer URLs by chain ID
+ * Covers 40+ EVM chains supported by the app
+ * RECEIPT-001 Fix: Expanded from 13 to 40+ chains (matching execution-modal.tsx)
  */
 const EXPLORER_URLS: Record<number, string> = {
+  // Major L1s
   1: 'https://etherscan.io/tx/',
-  10: 'https://optimistic.etherscan.io/tx/',
   56: 'https://bscscan.com/tx/',
   137: 'https://polygonscan.com/tx/',
   250: 'https://ftmscan.com/tx/',
-  324: 'https://explorer.zksync.io/tx/',
-  8453: 'https://basescan.org/tx/',
-  42161: 'https://arbiscan.io/tx/',
   43114: 'https://snowtrace.io/tx/',
+  100: 'https://gnosisscan.io/tx/',
+  42220: 'https://celoscan.io/tx/',
+  1313161554: 'https://aurorascan.dev/tx/',
+  1284: 'https://moonscan.io/tx/',
+  1285: 'https://moonriver.moonscan.io/tx/',
+
+  // L2s and Rollups
+  10: 'https://optimistic.etherscan.io/tx/',
+  42161: 'https://arbiscan.io/tx/',
+  8453: 'https://basescan.org/tx/',
+  324: 'https://explorer.zksync.io/tx/',
   59144: 'https://lineascan.build/tx/',
   534352: 'https://scrollscan.com/tx/',
+  5000: 'https://explorer.mantle.xyz/tx/',
+  1088: 'https://andromeda-explorer.metis.io/tx/',
+  1101: 'https://zkevm.polygonscan.com/tx/',
+  81457: 'https://blastscan.io/tx/',
+  34443: 'https://explorer.mode.network/tx/',
+  7777777: 'https://explorer.zora.energy/tx/',
+
+  // Other L2s
+  169: 'https://pacific-explorer.manta.network/tx/',
+  252: 'https://fraxscan.com/tx/',
+  288: 'https://bobascan.com/tx/',
+  1116: 'https://scan.coredao.org/tx/',
+  2222: 'https://kavascan.io/tx/',
+  7700: 'https://cantoscan.com/tx/',
+  8217: 'https://klaytnscope.com/tx/',
+  32659: 'https://fsnscan.com/tx/',
+  42170: 'https://nova.arbiscan.io/tx/',
+  204: 'https://opbnbscan.com/tx/',
+  196: 'https://www.oklink.com/xlayer/tx/',
+  1135: 'https://explorer.lisk.com/tx/',
+  167000: 'https://taikoscan.io/tx/',
+  4202: 'https://sepolia.lisk.com/tx/',
+
+  // Testnets
+  5: 'https://goerli.etherscan.io/tx/',
+  11155111: 'https://sepolia.etherscan.io/tx/',
+  421614: 'https://sepolia.arbiscan.io/tx/',
+  84532: 'https://sepolia.basescan.org/tx/',
+  11155420: 'https://sepolia-optimism.etherscan.io/tx/',
+
+  // HyperEVM
   998: 'https://explorer.hyperliquid-testnet.xyz/tx/',
   999: 'https://explorer.hyperliquid.xyz/tx/',
 };
+
+/**
+ * Get explorer URL for a transaction
+ * RECEIPT-001 Fix: Falls back to chainConfigs if not in static map
+ */
+function getExplorerUrl(chainId: number, txHash: string): string | null {
+  // First try the static explorer URLs
+  if (EXPLORER_URLS[chainId]) {
+    return `${EXPLORER_URLS[chainId]}${txHash}`;
+  }
+
+  // Fall back to chainConfigs for additional chains
+  const chainConfig = chainConfigs[chainId];
+  if (chainConfig?.blockExplorerUrls?.[0]) {
+    const baseUrl = chainConfig.blockExplorerUrls[0];
+    const explorerUrl = baseUrl.endsWith('/') ? `${baseUrl}tx/` : `${baseUrl}/tx/`;
+    return `${explorerUrl}${txHash}`;
+  }
+
+  return null;
+}
 
 /**
  * Format an amount with commas
@@ -77,9 +140,8 @@ function InvalidReceipt() {
  */
 function ReceiptCard({ receipt }: { receipt: ShareReceiptData }) {
   const [copied, setCopied] = useState(false);
-  const explorerUrl = EXPLORER_URLS[receipt.fromChain.id]
-    ? `${EXPLORER_URLS[receipt.fromChain.id]}${receipt.txHash}`
-    : null;
+  // RECEIPT-001 Fix: Use getExplorerUrl with fallback to chainConfigs
+  const explorerUrl = getExplorerUrl(receipt.fromChain.id, receipt.txHash);
 
   const handleCopyHash = useCallback(async () => {
     const success = await copyToClipboard(receipt.txHash);

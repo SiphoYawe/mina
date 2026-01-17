@@ -161,6 +161,20 @@ canvas.confetti-canvas {
   z-index: 9999;
 }
 
+/* INPUT-001 Fix: Hide number input spinners/arrows for cleaner design */
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Reown/AppKit Modal - Force consistent font family */
 /* Some internal elements don't inherit --w3m-font-family correctly */
 w3m-modal,

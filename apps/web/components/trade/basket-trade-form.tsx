@@ -142,12 +142,13 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
           </button>
         </div>
 
+        {/* MOBILE-002 Fix: Better mobile layout for asset rows */}
         {assets.map((asset, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={index} className="flex items-center gap-1.5 sm:gap-2">
             <select
               value={asset.asset}
               onChange={(e) => updateAsset(side, index, 'asset', e.target.value)}
-              className="flex-1 h-10 px-3 bg-bg-elevated border border-border-subtle rounded-card text-text-primary text-small appearance-none focus:border-accent-primary focus:outline-none"
+              className="flex-1 min-w-0 h-9 sm:h-10 px-2 sm:px-3 bg-bg-elevated border border-border-subtle rounded-card text-text-primary text-[13px] sm:text-small appearance-none focus:border-accent-primary focus:outline-none"
             >
               {AVAILABLE_ASSETS.filter(a => a === asset.asset || !usedAssets.includes(a)).map(a => (
                 <option key={a} value={a}>{a}</option>
@@ -157,7 +158,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
               type="number"
               value={asset.weight}
               onChange={(e) => updateAsset(side, index, 'weight', Number(e.target.value))}
-              className="w-20 h-10 text-small font-mono"
+              className="w-16 sm:w-20 h-9 sm:h-10 text-[13px] sm:text-small font-mono px-2"
               step="0.1"
               min="0"
               max="1"
@@ -165,9 +166,9 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
             <button
               onClick={() => removeAsset(side, index)}
               disabled={assets.length <= 1}
-              className="p-2 text-text-muted hover:text-error disabled:opacity-30 disabled:hover:text-text-muted transition-colors"
+              className="p-1.5 sm:p-2 text-text-muted hover:text-error disabled:opacity-30 disabled:hover:text-text-muted transition-colors flex-shrink-0"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         ))}
@@ -249,13 +250,13 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
             )}
           </Button>
 
-          {/* Summary */}
-          <div className="text-caption text-text-muted text-center space-y-1">
+          {/* Summary - MOBILE-001 Fix: Better text wrapping on mobile */}
+          <div className="text-caption text-text-muted text-center space-y-1 px-1">
             {isSimulateMode && <p className="text-accent-primary">[Simulation]</p>}
-            <p>
+            <p className="break-words">
               Long: {longAssets.map(a => `${a.asset} (${(a.weight * 100).toFixed(0)}%)`).join(', ')}
             </p>
-            <p>
+            <p className="break-words">
               Short: {shortAssets.map(a => `${a.asset} (${(a.weight * 100).toFixed(0)}%)`).join(', ')}
             </p>
           </div>

@@ -137,14 +137,15 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
                 className="pl-8 h-12 text-body font-mono"
               />
             </div>
-            <div className="flex gap-2">
+            {/* MOBILE-001 Fix: Better button sizing on mobile */}
+            <div className="flex gap-1.5 sm:gap-2">
               {[100, 500, 1000, 5000].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setUsdValue(String(amount))}
-                  className="flex-1 py-1.5 text-caption text-text-muted bg-bg-elevated rounded border border-border-subtle hover:border-border-default transition-colors"
+                  className="flex-1 py-1 sm:py-1.5 text-[11px] sm:text-caption text-text-muted bg-bg-elevated rounded border border-border-subtle hover:border-border-default transition-colors"
                 >
-                  ${amount}
+                  ${amount >= 1000 ? `${amount / 1000}k` : amount}
                 </button>
               ))}
             </div>
@@ -171,17 +172,17 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
             </div>
           </div>
 
-          {/* Stop Loss / Take Profit */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
+          {/* Stop Loss / Take Profit - MOBILE-002 Fix: Better mobile layout */}
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between sm:justify-start sm:gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={enableSL}
                   onChange={(e) => setEnableSL(e.target.checked)}
-                  className="accent-accent-primary"
+                  className="accent-accent-primary w-4 h-4"
                 />
-                <span className="text-small text-text-muted">Stop Loss</span>
+                <span className="text-[13px] sm:text-small text-text-muted">Stop Loss</span>
               </label>
               {enableSL && (
                 <div className="flex items-center gap-1">
@@ -189,7 +190,7 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
                     type="number"
                     value={slPercent}
                     onChange={(e) => setSlPercent(e.target.value)}
-                    className="w-16 h-8 text-small font-mono"
+                    className="w-14 sm:w-16 h-8 text-[13px] sm:text-small font-mono px-2"
                     min="1"
                     max="99"
                   />
@@ -197,15 +198,15 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between sm:justify-start sm:gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={enableTP}
                   onChange={(e) => setEnableTP(e.target.checked)}
-                  className="accent-accent-primary"
+                  className="accent-accent-primary w-4 h-4"
                 />
-                <span className="text-small text-text-muted">Take Profit</span>
+                <span className="text-[13px] sm:text-small text-text-muted">Take Profit</span>
               </label>
               {enableTP && (
                 <div className="flex items-center gap-1">
@@ -213,7 +214,7 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
                     type="number"
                     value={tpPercent}
                     onChange={(e) => setTpPercent(e.target.value)}
-                    className="w-16 h-8 text-small font-mono"
+                    className="w-14 sm:w-16 h-8 text-[13px] sm:text-small font-mono px-2"
                     min="1"
                     max="1000"
                   />

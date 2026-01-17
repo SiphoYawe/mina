@@ -382,9 +382,9 @@ export function ChainSelector({
         </div>
       )}
 
-      {/* Dropdown */}
+      {/* Dropdown - MOBILE-001 Fix: Add viewport constraint */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-bg-elevated border border-border-default rounded-card shadow-lg overflow-hidden animate-fade-in animate-slide-down">
+        <div className="absolute z-50 w-full max-w-[calc(100vw-2rem)] mt-2 bg-bg-elevated border border-border-default rounded-card shadow-lg overflow-hidden animate-fade-in animate-slide-down">
           {/* Search Input */}
           <div className="p-3 border-b border-border-subtle">
             <div className="relative">

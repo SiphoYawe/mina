@@ -50,6 +50,7 @@ function DestinationChainDisplay() {
 
 /**
  * Tooltip component for bridge button
+ * TOOLTIP-001 Fix: Added max-width and word wrap for mobile viewport
  */
 function BridgeButtonTooltip({ show, children, message }: { show: boolean; children: React.ReactNode; message: string }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -64,9 +65,9 @@ function BridgeButtonTooltip({ show, children, message }: { show: boolean; child
     >
       {children}
       {show && isHovered && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-bg-elevated border border-border-default rounded-lg shadow-lg z-10 whitespace-nowrap animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-bg-elevated border border-border-default rounded-lg shadow-lg z-10 max-w-[min(300px,calc(100vw-2rem))] text-wrap animate-in fade-in slide-in-from-bottom-1 duration-200">
           <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-warning" />
+            <Info className="w-4 h-4 text-warning flex-shrink-0" />
             <span className="text-caption text-text-primary">{message}</span>
           </div>
           {/* Arrow */}

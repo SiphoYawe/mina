@@ -50,8 +50,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative z-10 container mx-auto px-4 py-16 text-center">
+      {/* Hero Section - MOBILE-001 Fix: Reduced padding on mobile */}
+      <section className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16 text-center">
         {/* Spotlight Effect */}
         <Spotlight />
 
@@ -59,7 +59,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative z-20 text-text-primary mb-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
+          className="relative z-20 text-text-primary mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
         >
           Bridge to
           <br />
@@ -69,7 +69,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-10"
+          className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-6 sm:mb-10 px-2"
         >
           Seamlessly bridge assets from 40+ chains directly to your Hyperliquid trading account.
           One click, zero hassle.
