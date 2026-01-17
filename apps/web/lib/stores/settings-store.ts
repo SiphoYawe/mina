@@ -36,6 +36,8 @@ interface SettingsState {
   routePreference: RoutePreference;
   // Whether using custom slippage (not a preset)
   isCustomSlippage: boolean;
+  // Auto-deposit to Hyperliquid L1 after bridging
+  autoDeposit: boolean;
 }
 
 /**
@@ -48,6 +50,8 @@ interface SettingsActions {
   setSlippagePreset: (preset: SlippagePreset) => void;
   // Set route preference
   setRoutePreference: (preference: RoutePreference) => void;
+  // Set auto-deposit preference
+  setAutoDeposit: (enabled: boolean) => void;
   // Reset to defaults
   resetSettings: () => void;
 }
@@ -56,6 +60,7 @@ const initialState: SettingsState = {
   slippage: SLIPPAGE_DEFAULT,
   routePreference: 'recommended',
   isCustomSlippage: false,
+  autoDeposit: true,
 };
 
 /**
@@ -102,6 +107,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         setRoutePreference: (routePreference) =>
           set({ routePreference }, false, 'setRoutePreference'),
 
+        setAutoDeposit: (autoDeposit) =>
+          set({ autoDeposit }, false, 'setAutoDeposit'),
+
         resetSettings: () => set(initialState, false, 'resetSettings'),
       }),
       {
@@ -109,6 +117,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         partialize: (state) => ({
           slippage: state.slippage,
           routePreference: state.routePreference,
+          autoDeposit: state.autoDeposit,
         }),
       }
     ),
@@ -120,3 +129,4 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 export const useSlippage = () => useSettingsStore((state) => state.slippage);
 export const useRoutePreference = () => useSettingsStore((state) => state.routePreference);
 export const useIsCustomSlippage = () => useSettingsStore((state) => state.isCustomSlippage);
+export const useAutoDeposit = () => useSettingsStore((state) => state.autoDeposit);

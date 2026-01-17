@@ -13,7 +13,7 @@ export interface DepositState {
   /** Whether deposit is in progress */
   isDepositing: boolean;
   /** Current deposit status */
-  status: DepositStatus | 'idle' | 'waiting_arrival' | 'l1_monitoring' | 'l1_confirmed';
+  status: DepositStatus | 'idle' | 'waiting_arrival' | 'l1_monitoring' | 'l1_confirmed' | 'failed';
   /** HyperEVM deposit transaction hash */
   hyperEvmTxHash: string | null;
   /** Approval transaction hash (if needed) */
@@ -179,7 +179,10 @@ export function useAutoDeposit() {
       return { success: false, error };
     }
 
-    // Create abort controller for cancellation
+    // Abort any existing operation and create new controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     abortControllerRef.current = new AbortController();
 
     safeSetState({
@@ -220,7 +223,7 @@ export function useAutoDeposit() {
       options.onDepositStarted?.();
 
       // Step 2: Execute deposit to Hyperliquid L1
-      safeSetState(prev => ({ ...prev, status: 'checking_balance' }));
+      // Status will be updated by onStatusChange callback from SDK
 
       // Import deposit function from SDK
       const { executeDeposit: sdkExecuteDeposit } = await import('@siphoyawe/mina-sdk');
@@ -318,7 +321,7 @@ export function useAutoDeposit() {
 
       return { success: false, error: err };
     }
-  }, [mina, isReady, walletClient, createSigner]);
+  }, [mina, isReady, walletClient, createSigner, safeSetState]);
 
   /**
    * Retry failed deposit
@@ -349,7 +352,7 @@ export function useAutoDeposit() {
       finalTradingBalance: null,
       bridgeSummary: null,
     });
-  }, []);
+  }, [safeSetState]);
 
   return {
     executeDeposit,

@@ -1,32 +1,46 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useChainId } from 'wagmi';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { useMina } from '@/app/providers';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import type { Chain } from '@siphoyawe/mina-sdk';
 
+// Query configuration
+const CHAINS_STALE_TIME = 5 * 60 * 1000; // 5 minutes - chains don't change often
+const CHAINS_GC_TIME = 10 * 60 * 1000; // 10 minutes garbage collection
+const MAX_RETRIES = 3;
+const RETRY_DELAY_BASE = 1000; // 1 second base delay
+
+/**
+ * Calculate exponential backoff delay
+ */
+function getRetryDelay(attemptIndex: number): number {
+  // Exponential backoff: 1s, 2s, 4s (capped at 10s)
+  return Math.min(RETRY_DELAY_BASE * 2 ** attemptIndex, 10000);
+}
+
 /**
  * Hook for fetching and managing chain data
  *
  * Features:
- * - Fetches chains from SDK
+ * - Fetches chains from SDK using TanStack Query
+ * - Automatic retry with exponential backoff (3 retries)
  * - Pre-selects wallet's current chain
  * - Detects when network switch is needed
- * - Manages loading and error states
+ * - Proper caching and stale time management
+ * - Manual refresh capability
  */
 export function useChains() {
-  const [chains, setChains] = useState<Chain[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Issue 2 fix: Use ref to track if initial selection was done
   const hasInitialSelectionRef = useRef(false);
 
   const { mina, isReady: isMinaReady } = useMina();
   const { isConnected } = useAppKitAccount();
   const walletChainId = useChainId();
+  const queryClient = useQueryClient();
 
   // Get actions from store without subscribing to state changes
   const setSourceChain = useBridgeStore((state) => state.setSourceChain);
@@ -36,85 +50,107 @@ export function useChains() {
   // Issue 6: Get rehydrateSourceChain action for restoring chain from persisted ID
   const rehydrateSourceChain = useBridgeStore((state) => state.rehydrateSourceChain);
 
-  // Get sourceChain separately for reading (not in deps of fetchChains)
+  // Get sourceChain separately for reading
   const sourceChain = useBridgeStore((state) => state.sourceChain);
 
-  // Fetch chains from SDK
-  // Issue 2 fix: Remove sourceChain from deps to prevent infinite loop
-  const fetchChains = useCallback(async () => {
-    if (!mina || !isMinaReady) return;
-
-    setIsLoading(true);
-    setIsLoadingChains(true);
-    setError(null);
-    setChainsError(null);
-
-    try {
-      // mina.getChains() returns Chain[] directly
-      // mina.getChainsWithMetadata() returns { chains, isStale, cachedAt }
-      const chainList = await mina.getChains();
-      setChains(chainList);
-
-      // Issue 6: Rehydrate sourceChain from persisted chain ID first
-      rehydrateSourceChain(chainList);
-
-      // If no chain is selected AND we haven't done initial selection, pre-select based on wallet connection
-      // Use ref to prevent re-triggering on subsequent fetches
-      const currentSourceChain = useBridgeStore.getState().sourceChain;
-      if (!currentSourceChain && !hasInitialSelectionRef.current && chainList.length > 0) {
-        hasInitialSelectionRef.current = true;
-
-        // Try to find wallet's current chain
-        if (isConnected && walletChainId) {
-          const walletChain = chainList.find(
-            (chain: Chain) => chain.id === walletChainId
-          );
-          if (walletChain) {
-            setSourceChain(walletChain);
-          } else {
-            // Wallet chain not supported, select Ethereum as default
-            const ethereum = chainList.find((chain: Chain) => chain.id === 1);
-            if (ethereum) {
-              setSourceChain(ethereum);
-              setNeedsNetworkSwitch(true);
-            }
-          }
-        } else {
-          // No wallet connected, select Ethereum as default
-          const ethereum = chainList.find((chain: Chain) => chain.id === 1);
-          if (ethereum) {
-            setSourceChain(ethereum);
-          }
-        }
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch chains';
-      setError(message);
-      setChainsError(message);
-      console.error('[useChains] Error fetching chains:', err);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingChains(false);
-    }
-  }, [
-    mina,
-    isMinaReady,
-    // Issue 2 fix: Removed sourceChain from deps
+  // Stable references for callbacks to avoid dependency issues
+  const stableRefs = useRef({
     isConnected,
     walletChainId,
     setSourceChain,
     setNeedsNetworkSwitch,
-    setIsLoadingChains,
-    setChainsError,
     rehydrateSourceChain,
-  ]);
-
-  // Fetch chains when SDK is ready
+  });
   useEffect(() => {
-    if (isMinaReady && mina) {
-      fetchChains();
+    stableRefs.current = {
+      isConnected,
+      walletChainId,
+      setSourceChain,
+      setNeedsNetworkSwitch,
+      rehydrateSourceChain,
+    };
+  }, [isConnected, walletChainId, setSourceChain, setNeedsNetworkSwitch, rehydrateSourceChain]);
+
+  // TanStack Query for chains with retry logic
+  const {
+    data: chains = [],
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    failureCount,
+    isRefetching,
+  } = useQuery<Chain[], Error>({
+    queryKey: ['chains'],
+    queryFn: async (): Promise<Chain[]> => {
+      if (!mina) {
+        throw new Error('SDK not initialized');
+      }
+
+      console.log('[useChains] Fetching chains...');
+      const chainList = await mina.getChains();
+      console.log('[useChains] Fetched', chainList.length, 'chains');
+      return chainList;
+    },
+    enabled: isMinaReady && Boolean(mina),
+    staleTime: CHAINS_STALE_TIME,
+    gcTime: CHAINS_GC_TIME,
+    retry: MAX_RETRIES,
+    retryDelay: getRetryDelay,
+    refetchOnWindowFocus: false, // Chains don't change often
+    refetchOnReconnect: true, // Refetch when network reconnects
+  });
+
+  // Handle chain selection and rehydration when chains are loaded
+  useEffect(() => {
+    if (!chains || chains.length === 0) return;
+
+    const { isConnected: connected, walletChainId: chainId, setSourceChain: setChain, setNeedsNetworkSwitch: setSwitch, rehydrateSourceChain: rehydrate } = stableRefs.current;
+
+    // Issue 6: Rehydrate sourceChain from persisted chain ID first
+    rehydrate(chains);
+
+    // If no chain is selected AND we haven't done initial selection, pre-select based on wallet connection
+    const currentSourceChain = useBridgeStore.getState().sourceChain;
+    if (!currentSourceChain && !hasInitialSelectionRef.current) {
+      hasInitialSelectionRef.current = true;
+
+      // Try to find wallet's current chain
+      if (connected && chainId) {
+        const walletChain = chains.find((chain: Chain) => chain.id === chainId);
+        if (walletChain) {
+          setChain(walletChain);
+        } else {
+          // Wallet chain not supported, select Ethereum as default
+          const ethereum = chains.find((chain: Chain) => chain.id === 1);
+          if (ethereum) {
+            setChain(ethereum);
+            setSwitch(true);
+          }
+        }
+      } else {
+        // No wallet connected, select Ethereum as default
+        const ethereum = chains.find((chain: Chain) => chain.id === 1);
+        if (ethereum) {
+          setChain(ethereum);
+        }
+      }
     }
-  }, [isMinaReady, mina, fetchChains]);
+  }, [chains]);
+
+  // Sync loading state to store
+  useEffect(() => {
+    setIsLoadingChains(isLoading);
+  }, [isLoading, setIsLoadingChains]);
+
+  // Sync error state to store
+  useEffect(() => {
+    const errorMessage = error ? (error instanceof Error ? error.message : 'Failed to fetch chains') : null;
+    setChainsError(errorMessage);
+    if (error) {
+      console.error('[useChains] Error fetching chains:', error, `(attempt ${failureCount}/${MAX_RETRIES + 1})`);
+    }
+  }, [error, failureCount, setChainsError]);
 
   // Detect network switch needed when wallet chain changes
   useEffect(() => {
@@ -137,19 +173,27 @@ export function useChains() {
     }
   }, [walletChainId, isConnected, chains, sourceChain, setSourceChain]);
 
-  // Refresh chains
+  // Refresh chains - invalidates cache and refetches
   const refreshChains = useCallback(() => {
-    fetchChains();
-  }, [fetchChains]);
+    console.log('[useChains] Manually refreshing chains');
+    queryClient.invalidateQueries({ queryKey: ['chains'] });
+    refetch();
+  }, [queryClient, refetch]);
 
   return {
     chains,
     isLoading,
-    error,
+    isFetching,
+    isRefetching,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch chains') : null,
     refreshChains,
     selectedChain: sourceChain,
     walletChainId,
     isConnected,
+    /** Number of failed retry attempts (0-3) */
+    failureCount,
+    /** Maximum retry attempts */
+    maxRetries: MAX_RETRIES,
   };
 }
 

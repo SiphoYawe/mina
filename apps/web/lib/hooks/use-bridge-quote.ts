@@ -7,6 +7,7 @@ import { useAppKitAccount } from '@reown/appkit/react';
 import { useMina } from '@/app/providers';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
+import { HYPEREVM_USDC_ADDRESS } from '@siphoyawe/mina-sdk';
 import type { Quote, QuoteParams } from '@siphoyawe/mina-sdk';
 
 const HYPEREVM_CHAIN_ID = 999;
@@ -48,7 +49,7 @@ interface UseBridgeQuoteReturn {
  * - Integrates with Zustand bridge store
  */
 export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQuoteReturn {
-  const { autoDeposit = true, slippage: slippageOverride } = options;
+  const { autoDeposit: autoDepositOverride, slippage: slippageOverride } = options;
   const { mina, isReady } = useMina();
   const { address, isConnected } = useAppKitAccount();
 
@@ -61,16 +62,18 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
     }))
   );
 
-  // Get settings from settings store
-  const { slippage: settingsSlippage, routePreference } = useSettingsStore(
+  // Get settings from settings store (including autoDeposit for SETTINGS-003 fix)
+  const { slippage: settingsSlippage, routePreference, autoDeposit: settingsAutoDeposit } = useSettingsStore(
     useShallow((state) => ({
       slippage: state.slippage,
       routePreference: state.routePreference,
+      autoDeposit: state.autoDeposit,
     }))
   );
 
-  // Use override slippage if provided, otherwise use settings store value
+  // Use override values if provided, otherwise use settings store values
   const slippage = slippageOverride ?? settingsSlippage;
+  const autoDeposit = autoDepositOverride ?? settingsAutoDeposit;
 
   // Debounced amount state
   const [debouncedAmount, setDebouncedAmount] = useState(amount);
@@ -154,20 +157,22 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
         return null;
       }
 
-      // For now, use USDC on HyperEVM as destination token
-      // This should be configurable in the future
-      const USDC_HYPEREVM = '0xeb62eee3685fc4c43992febcd9e75443a2dc32ff';
-
+      // Use USDC on HyperEVM as destination token (QUOTE-004 fix: use SDK constant)
+      // HYPEREVM_USDC_ADDRESS is the correct USDC address on HyperEVM
       const params: QuoteParams = {
         fromChainId: sourceChain.id,
         toChainId: HYPEREVM_CHAIN_ID,
         fromToken: sourceToken.address,
-        toToken: USDC_HYPEREVM,
+        toToken: HYPEREVM_USDC_ADDRESS,
         fromAmount: fromAmountWei,
         fromAddress: address,
         slippageTolerance: slippage,
         routePreference,
       };
+
+      // SETTINGS-003 fix: Update SDK autoDeposit setting before fetching quote
+      // This ensures the quote reflects the current auto-deposit preference
+      mina.setAutoDeposit(autoDeposit);
 
       const fetchedQuote = await mina.getQuote(params);
 

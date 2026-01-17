@@ -128,9 +128,11 @@ export function useBridgeExecution() {
 
   /**
    * Execute a bridge transaction
+   * @param quote The quote to execute
+   * @param options Optional execution options including a pre-generated executionId
    */
   const execute = useCallback(
-    async (quote: Quote): Promise<ExecutionResult> => {
+    async (quote: Quote, options?: { executionId?: string }): Promise<ExecutionResult> => {
       if (!mina || !isReady) {
         return {
           success: false,
@@ -175,8 +177,8 @@ export function useBridgeExecution() {
         });
       }
 
-      // Generate a simple execution ID
-      const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      // Use provided executionId or generate a new one
+      const executionId = options?.executionId ?? `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
       // Start execution in store
       startExecution({
@@ -296,7 +298,7 @@ export function useBridgeExecution() {
 
                 return {
                   success: true,
-                  executionId: result.executionId,
+                  executionId, // Use local executionId for consistency
                   txHash: result.txHash,
                   receivingTxHash: depositResult.depositTxHash,
                   receivedAmount: result.receivedAmount,
@@ -331,7 +333,7 @@ export function useBridgeExecution() {
 
                 return {
                   success: false,
-                  executionId: result.executionId,
+                  executionId, // Use local executionId for consistency
                   txHash: result.txHash,
                   receivedAmount: result.receivedAmount,
                   error: depositErr,
@@ -352,7 +354,7 @@ export function useBridgeExecution() {
 
           return {
             success: true,
-            executionId: result.executionId,
+            executionId, // Use local executionId for consistency
             txHash: result.txHash,
             receivingTxHash: result.depositTxHash ?? undefined,
             receivedAmount: result.receivedAmount,
@@ -372,7 +374,7 @@ export function useBridgeExecution() {
 
           return {
             success: false,
-            executionId: result.executionId,
+            executionId, // Use local executionId for consistency
             error: errorObj,
           };
         }
@@ -382,7 +384,7 @@ export function useBridgeExecution() {
 
         return {
           success: false,
-          executionId: result.executionId,
+          executionId, // Use local executionId for consistency
           error: new Error('Transaction still in progress'),
         };
       } catch (err) {
