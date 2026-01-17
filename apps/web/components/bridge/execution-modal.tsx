@@ -3,7 +3,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { CheckCircle2, XCircle, ExternalLink, ArrowRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, RotateCcw } from 'lucide-react';
 import { ConfettiCelebration } from '@/components/shared/confetti';
+import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useBridgeStore } from '@/lib/stores/bridge-store';
+import type { ShareReceiptData } from '@/lib/utils/share';
 import {
   Dialog,
   DialogContent,
@@ -79,6 +82,7 @@ function SuccessContent({
   finalTradingBalance,
   onBridgeAgain,
   onClose,
+  startedAt,
 }: {
   txHash: string | null;
   receivingTxHash: string | null;
@@ -90,11 +94,23 @@ function SuccessContent({
   finalTradingBalance: string | null;
   onBridgeAgain?: () => void;
   onClose: () => void;
+  startedAt: number | null;
 }) {
   const sourceExplorerUrl = txHash && fromChainId ? getExplorerUrl(fromChainId, txHash) : null;
   const destExplorerUrl = receivingTxHash && toChainId ? getExplorerUrl(toChainId, receivingTxHash) : null;
   const depositExplorerUrl = depositTxHash ? getExplorerUrl(999, depositTxHash) : null;
   const { triggerConfetti } = useUIStore();
+  const { sourceChain, sourceToken, amount } = useBridgeStore();
+
+  // Build receipt data for sharing
+  const receiptData: ShareReceiptData | null = txHash && sourceChain && sourceToken && receivedAmount ? {
+    txHash,
+    fromChain: { name: sourceChain.name, id: sourceChain.id },
+    toChain: { name: 'Hyperliquid', id: toChainId || 999 },
+    fromToken: { symbol: sourceToken.symbol, amount: amount || '0' },
+    toToken: { symbol: 'USDC', amount: receivedAmount },
+    timestamp: startedAt || Date.now(),
+  } : null;
 
   // Trigger confetti celebration on mount (when success content is shown)
   useEffect(() => {
@@ -192,6 +208,13 @@ function SuccessContent({
             </a>
           )}
         </div>
+
+        {/* Share Receipt Button */}
+        {receiptData && (
+          <div className="flex justify-center mb-4">
+            <ShareReceiptButton receipt={receiptData} />
+          </div>
+        )}
       </DialogBody>
 
       <DialogFooter className="flex-col gap-3">
@@ -599,6 +622,7 @@ export function ExecutionModal({
     autoDepositCompleted,
     depositTxHash,
     finalTradingBalance,
+    startedAt,
     closeModal,
     reset,
   } = useTransactionStore();
@@ -682,6 +706,7 @@ export function ExecutionModal({
             finalTradingBalance={finalTradingBalance}
             onBridgeAgain={onBridgeAgain}
             onClose={handleClose}
+            startedAt={startedAt}
           />
         )}
 
