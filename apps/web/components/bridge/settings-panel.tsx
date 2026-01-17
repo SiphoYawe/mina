@@ -2,12 +2,11 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Settings01Icon, FavouriteIcon, Timer02Icon, BitcoinEllipseIcon } from '@hugeicons/core-free-icons';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useSettingsStore, SLIPPAGE_PRESETS, SLIPPAGE_MIN, SLIPPAGE_MAX, ROUTE_OPTIONS, type SlippagePreset } from '@/lib/stores/settings-store';
 import { useReducedMotion } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
@@ -37,8 +36,6 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [customSlippageInput, setCustomSlippageInput] = useState('');
-  const [slippageError, setSlippageError] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   // Mount check for SSR safety with portal
@@ -57,56 +54,11 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
       setRoutePreference: state.setRoutePreference,
     })));
 
-  // Sync custom input with store when panel opens
-  useEffect(() => {
-    if (isOpen && isCustomSlippage) {
-      setCustomSlippageInput(slippage.toString());
-    }
-  }, [isOpen, isCustomSlippage, slippage]);
-
   // Handle preset slippage selection
   const handleSlippagePreset = useCallback((preset: SlippagePreset) => {
     setSlippagePreset(preset);
-    setCustomSlippageInput('');
-    setSlippageError(null);
     onSettingsChange?.();
   }, [setSlippagePreset, onSettingsChange]);
-
-  // Handle custom slippage input change
-  const handleCustomSlippageChange = useCallback((value: string) => {
-    setCustomSlippageInput(value);
-
-    // Clear error on empty
-    if (!value.trim()) {
-      setSlippageError(null);
-      return;
-    }
-
-    const numValue = parseFloat(value);
-
-    if (isNaN(numValue)) {
-      setSlippageError('Please enter a valid number');
-      return;
-    }
-
-    if (numValue < SLIPPAGE_MIN || numValue > SLIPPAGE_MAX) {
-      setSlippageError(`Must be between ${SLIPPAGE_MIN}% and ${SLIPPAGE_MAX}%`);
-      return;
-    }
-
-    setSlippageError(null);
-  }, []);
-
-  // Apply custom slippage on blur or Enter
-  const applyCustomSlippage = useCallback(() => {
-    if (!customSlippageInput.trim() || slippageError) return;
-
-    const numValue = parseFloat(customSlippageInput);
-    if (!isNaN(numValue) && numValue >= SLIPPAGE_MIN && numValue <= SLIPPAGE_MAX) {
-      setSlippage(numValue);
-      onSettingsChange?.();
-    }
-  }, [customSlippageInput, slippageError, setSlippage, onSettingsChange]);
 
   // Handle route preference change
   const handleRoutePreferenceChange = useCallback((preference: RoutePreference) => {
@@ -114,21 +66,10 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
     onSettingsChange?.();
   }, [setRoutePreference, onSettingsChange]);
 
-  // Handle key press for custom input
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      applyCustomSlippage();
-    }
-  }, [applyCustomSlippage]);
-
   // Close panel handler
   const handleClose = useCallback(() => {
     setIsOpen(false);
-    // Apply any pending custom slippage
-    if (customSlippageInput && !slippageError) {
-      applyCustomSlippage();
-    }
-  }, [customSlippageInput, slippageError, applyCustomSlippage]);
+  }, []);
 
   // Portal content for backdrop and panel
   const portalContent = isMounted ? (
@@ -204,43 +145,57 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
               })}
             </div>
 
-            {/* Custom Input */}
-            <div className="relative">
-              <Input
-                type="number"
-                placeholder="Custom"
-                value={customSlippageInput}
-                onChange={(e) => handleCustomSlippageChange(e.target.value)}
-                onBlur={applyCustomSlippage}
-                onKeyDown={handleKeyDown}
-                className={cn(
-                  "pr-8",
-                  slippageError && "border-error focus:ring-error/30",
-                  isCustomSlippage && !slippageError && "border-accent-primary focus:ring-accent-primary/30"
-                )}
-                min={SLIPPAGE_MIN}
-                max={SLIPPAGE_MAX}
-                step={0.01}
-                aria-invalid={!!slippageError}
-                aria-describedby={slippageError ? "slippage-error" : undefined}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-small">
-                %
-              </span>
-            </div>
-
-            {/* Error Message */}
-            {slippageError && (
-              <div id="slippage-error" className="flex items-center gap-2 mt-2 text-error text-caption" role="alert">
-                <AlertCircle className="w-4 h-4" />
-                {slippageError}
+            {/* Custom Slider */}
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-caption text-text-muted">Custom</span>
+                <span className="text-small font-medium text-text-primary tabular-nums">
+                  {slippage}%
+                </span>
               </div>
-            )}
-
-            {/* Current Value Display */}
-            <p className="text-caption text-text-muted mt-2">
-              Current: <span className="text-text-primary font-medium">{slippage}%</span>
-            </p>
+              <div className="relative">
+                <input
+                  type="range"
+                  min={SLIPPAGE_MIN}
+                  max={SLIPPAGE_MAX}
+                  step={0.1}
+                  value={slippage}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    setSlippage(value);
+                    onSettingsChange?.();
+                  }}
+                  className={cn(
+                    "w-full h-2 rounded-full appearance-none cursor-pointer",
+                    "bg-bg-surface border border-border-subtle",
+                    "[&::-webkit-slider-thumb]:appearance-none",
+                    "[&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5",
+                    "[&::-webkit-slider-thumb]:rounded-full",
+                    "[&::-webkit-slider-thumb]:bg-accent-primary",
+                    "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20",
+                    "[&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(125,211,252,0.4)]",
+                    "[&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150",
+                    "[&::-webkit-slider-thumb]:hover:scale-110",
+                    "[&::-webkit-slider-thumb]:hover:shadow-[0_0_15px_rgba(125,211,252,0.6)]",
+                    "[&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5",
+                    "[&::-moz-range-thumb]:rounded-full",
+                    "[&::-moz-range-thumb]:bg-accent-primary",
+                    "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/20",
+                    "[&::-moz-range-thumb]:shadow-[0_0_10px_rgba(125,211,252,0.4)]"
+                  )}
+                  aria-label="Custom slippage tolerance"
+                />
+                {/* Track fill indicator */}
+                <div
+                  className="absolute top-0 left-0 h-2 rounded-full bg-gradient-to-r from-accent-primary/30 to-accent-primary pointer-events-none"
+                  style={{ width: `${((slippage - SLIPPAGE_MIN) / (SLIPPAGE_MAX - SLIPPAGE_MIN)) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-caption text-text-muted">
+                <span>{SLIPPAGE_MIN}%</span>
+                <span>{SLIPPAGE_MAX}%</span>
+              </div>
+            </div>
           </section>
 
           {/* Route Preference Section */}
