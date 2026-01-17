@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import { AlertCircle, ArrowDown, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowRight, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
 import { useRouter } from 'next/navigation';
@@ -719,7 +719,7 @@ export function BridgeForm() {
   const isBridgeDisabled = isSimulateMode ? isSimulateButtonDisabled : isBridgeButtonDisabled;
 
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className="w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto">
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
           <CardTitle>Bridge Assets</CardTitle>
@@ -770,79 +770,99 @@ export function BridgeForm() {
           </div>
         )}
 
-        {/* From Section */}
-        <div className="space-y-2">
-          <label className="text-small text-text-secondary">From</label>
-          <ChainSelector
-            value={sourceChain}
-            onChange={handleChainChange}
-            chains={chains}
-            isLoading={isLoading}
-            error={error}
-            disabled={false}
-            placeholder="Select source chain"
-            onRetry={refreshChains}
-            failureCount={failureCount}
-            maxRetries={maxRetries}
+        {/* Main Bridge Layout - Horizontal on md+, Vertical on mobile */}
+        <div className="flex flex-col md:flex-row md:items-center md:gap-4 lg:gap-6">
+          {/* From Section - Left side on desktop */}
+          <div className="flex-1 space-y-3">
+            <div className="space-y-2">
+              <label className="text-small text-text-secondary">From</label>
+              <ChainSelector
+                value={sourceChain}
+                onChange={handleChainChange}
+                chains={chains}
+                isLoading={isLoading}
+                error={error}
+                disabled={false}
+                placeholder="Select source chain"
+                onRetry={refreshChains}
+                failureCount={failureCount}
+                maxRetries={maxRetries}
+              />
+            </div>
+
+            {/* ERR-001: Token Load Error Display */}
+            {tokenLoadError && sourceChain && (
+              <TokenLoadError
+                onRetry={handleRetryTokenLoad}
+                isRetrying={isRetryingTokens}
+              />
+            )}
+
+            {/* Amount Input with Token Selector */}
+            <div className="space-y-2">
+              <label className="text-small text-text-secondary">Amount</label>
+              <div className="relative flex items-center gap-2">
+                <Input
+                  placeholder="0.00"
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={handleAmountChange}
+                  disabled={!sourceChain || (!isSimulateMode && needsSwitch) || !sourceToken}
+                  className="flex-1"
+                  aria-label="Bridge amount"
+                />
+                <TokenSelector
+                  value={sourceToken}
+                  onChange={handleTokenChange}
+                  tokens={availableTokens}
+                  isLoading={isLoadingTokens}
+                  disabled={!sourceChain || (!isSimulateMode && needsSwitch)}
+                  placeholder="Token"
+                />
+              </div>
+              {/* QUOTE-001: Amount Validation Warning */}
+              {!amountValidation.isValid && (
+                <AmountValidationWarning validation={amountValidation} />
+              )}
+            </div>
+          </div>
+
+          {/* Arrow Divider - Center on desktop */}
+          <div className="flex justify-center py-3 md:py-0 md:px-2">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-muted/20 border-2 border-accent-primary/30 flex items-center justify-center shadow-lg shadow-accent-primary/10">
+              {/* ArrowDown on mobile, ArrowRight on desktop */}
+              <ArrowDown className="w-5 h-5 md:hidden text-accent-primary" />
+              <ArrowRight className="hidden md:block w-6 h-6 text-accent-primary" />
+            </div>
+          </div>
+
+          {/* To Section - Right side on desktop */}
+          <div className="flex-1 space-y-3">
+            <div className="space-y-2">
+              <label className="text-small text-text-secondary">To</label>
+              <DestinationChainDisplay />
+            </div>
+
+            {/* Quote Display - Desktop only in this position */}
+            <div className="hidden md:block">
+              <QuoteDisplay
+                quote={quote}
+                isLoading={isQuoteLoading}
+                error={quoteError}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Quote Display - Mobile only */}
+        <div className="md:hidden">
+          <QuoteDisplay
+            quote={quote}
+            isLoading={isQuoteLoading}
+            error={quoteError}
           />
         </div>
-
-        {/* ERR-001: Token Load Error Display */}
-        {tokenLoadError && sourceChain && (
-          <TokenLoadError
-            onRetry={handleRetryTokenLoad}
-            isRetrying={isRetryingTokens}
-          />
-        )}
-
-        {/* Amount Input with Token Selector */}
-        <div className="space-y-2">
-          <label className="text-small text-text-secondary">Amount</label>
-          <div className="relative flex items-center gap-2">
-            <Input
-              placeholder="0.00"
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={handleAmountChange}
-              disabled={!sourceChain || (!isSimulateMode && needsSwitch) || !sourceToken}
-              className="flex-1"
-              aria-label="Bridge amount"
-            />
-            <TokenSelector
-              value={sourceToken}
-              onChange={handleTokenChange}
-              tokens={availableTokens}
-              isLoading={isLoadingTokens}
-              disabled={!sourceChain || (!isSimulateMode && needsSwitch)}
-              placeholder="Token"
-            />
-          </div>
-          {/* QUOTE-001: Amount Validation Warning */}
-          {!amountValidation.isValid && (
-            <AmountValidationWarning validation={amountValidation} />
-          )}
-        </div>
-
-        {/* Arrow Divider */}
-        <div className="flex justify-center py-2">
-          <div className="w-10 h-10 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center">
-            <ArrowDown className="w-5 h-5 text-text-muted" />
-          </div>
-        </div>
-
-        {/* To Section */}
-        <div className="space-y-2">
-          <label className="text-small text-text-secondary">To</label>
-          <DestinationChainDisplay />
-        </div>
-
-        {/* Quote Display */}
-        <QuoteDisplay
-          quote={quote}
-          isLoading={isQuoteLoading}
-          error={quoteError}
-        />
 
         {/* QUOTE-002: Exchange Rate Display */}
         {quote && <ExchangeRateDisplay quote={quote} />}
