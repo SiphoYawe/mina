@@ -45,9 +45,12 @@ if (!projectId) {
 // Issue 2 Fix: Make chain ID configurable via env var with default 999
 const hyperEvmChainId = Number(process.env.NEXT_PUBLIC_HYPEREVM_CHAIN_ID) || 999;
 
-// Define HyperEVM custom network (Chain ID 999 for mainnet, or 998 for testnet)
-export const hyperEVM: AppKitNetwork = {
-  id: hyperEvmChainId,
+// Determine if using testnet based on chain ID
+const isTestnet = hyperEvmChainId === 998;
+
+// HyperEVM Mainnet configuration
+export const hyperEVMMainnet: AppKitNetwork = {
+  id: 999,
   name: 'HyperEVM',
   nativeCurrency: {
     name: 'HYPE',
@@ -56,7 +59,7 @@ export const hyperEVM: AppKitNetwork = {
   },
   rpcUrls: {
     default: {
-      http: ['https://api.hyperliquid.xyz/evm'],
+      http: ['https://rpc.hyperliquid.xyz/evm'],
     },
   },
   blockExplorers: {
@@ -66,6 +69,32 @@ export const hyperEVM: AppKitNetwork = {
     },
   },
 };
+
+// HyperEVM Testnet configuration
+export const hyperEVMTestnet: AppKitNetwork = {
+  id: 998,
+  name: 'HyperEVM Testnet',
+  nativeCurrency: {
+    name: 'HYPE',
+    symbol: 'HYPE',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.hyperliquid-testnet.xyz/evm'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'HyperEVM Testnet Explorer',
+      url: 'https://explorer.hyperliquid-testnet.xyz',
+    },
+  },
+  testnet: true,
+};
+
+// Select HyperEVM network based on environment
+export const hyperEVM: AppKitNetwork = isTestnet ? hyperEVMTestnet : hyperEVMMainnet;
 
 // Supported source chains (40+ EVM chains for bridging)
 export const supportedNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [

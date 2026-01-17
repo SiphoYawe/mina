@@ -28,8 +28,16 @@ export const chainConfigs: Record<number, AddEthereumChainParameter> = {
     chainId: '0x3E7', // 999 in hex
     chainName: 'HyperEVM',
     nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
-    rpcUrls: ['https://api.hyperliquid.xyz/evm'],
+    rpcUrls: ['https://rpc.hyperliquid.xyz/evm'],
     blockExplorerUrls: ['https://explorer.hyperliquid.xyz'],
+  },
+  // HyperEVM Testnet
+  998: {
+    chainId: '0x3E6', // 998 in hex
+    chainName: 'HyperEVM Testnet',
+    nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+    rpcUrls: ['https://rpc.hyperliquid-testnet.xyz/evm'],
+    blockExplorerUrls: ['https://explorer.hyperliquid-testnet.xyz'],
   },
   // Ethereum Mainnet - Issue 7 fix: Added fallback RPCs
   1: {
