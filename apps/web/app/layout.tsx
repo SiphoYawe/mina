@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Mina',
+  title: 'Mina — Bridge to Hyperliquid',
   description: 'Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account',
   manifest: '/manifest.json',
   appleWebApp: {
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Mina',
   },
-  applicationName: 'Mina',
+  applicationName: 'Mina — Bridge to Hyperliquid',
   formatDetection: {
     telephone: false,
   },
