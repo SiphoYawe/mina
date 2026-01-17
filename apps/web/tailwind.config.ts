@@ -64,6 +64,7 @@ const config: Config = {
         'spin': 'spin 1s linear infinite',
         'fade-in': 'fade-in 200ms ease-out',
         'slide-down': 'slide-down 200ms ease-out',
+        'slide-up': 'slide-up 300ms ease-out',
         'shimmer-slide': 'shimmer-slide var(--speed) ease-in-out infinite alternate',
         'spin-around': 'spin-around calc(var(--speed) * 2) infinite linear',
       },
@@ -82,6 +83,10 @@ const config: Config = {
         },
         'slide-down': {
           from: { opacity: '0', transform: 'translateY(-8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-up': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'shimmer-slide': {

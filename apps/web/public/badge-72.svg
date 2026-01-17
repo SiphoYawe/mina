@@ -1,0 +1,28 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Badge background circle -->
+  <circle cx="36" cy="36" r="36" fill="#6366F1"/>
+
+  <!-- Bridge icon - two connected arcs representing a bridge -->
+  <path
+    d="M16 42C16 42 22 30 36 30C50 30 56 42 56 42"
+    stroke="white"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Bridge pillars -->
+  <rect x="22" y="36" width="4" height="16" rx="2" fill="white"/>
+  <rect x="46" y="36" width="4" height="16" rx="2" fill="white"/>
+
+  <!-- Arrow indicating transfer/movement -->
+  <path
+    d="M30 24L36 18L42 24"
+    stroke="white"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <line x1="36" y1="18" x2="36" y2="30" stroke="white" stroke-width="3" stroke-linecap="round"/>
+</svg>

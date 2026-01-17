@@ -11,3 +11,14 @@ export { useAutoDeposit, type DepositState, type AutoDepositOptions } from './us
 export { useTransactionHistory } from './use-transaction-history';
 export { useReducedMotion } from './use-reduced-motion';
 export { useOnlineStatus } from './use-online-status';
+export {
+  usePendingBridge,
+  type QueueBridgeParams,
+  type UsePendingBridgeReturn,
+} from './use-pending-bridge';
+export {
+  usePushNotifications,
+  type PushNotificationState,
+  type PushNotificationActions,
+  type UsePushNotificationsReturn,
+} from './use-push-notifications';

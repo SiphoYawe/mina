@@ -10,8 +10,10 @@ import {
   ArrowRightLeft,
   Sparkles,
   Info,
+  WifiOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnlineStatus } from '@/lib/hooks/use-online-status';
 import type { Quote, Token } from '@siphoyawe/mina-sdk';
 
 interface QuoteDisplayProps {
@@ -293,6 +295,28 @@ function FeeBreakdown({
 }
 
 /**
+ * Offline Quote Message Component
+ * Displays when user is offline and trying to get quotes
+ */
+function OfflineQuoteMessage({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center gap-2',
+        'px-4 py-3',
+        'rounded-card',
+        'bg-bg-elevated border border-border-subtle',
+        'text-small text-text-secondary',
+        className
+      )}
+    >
+      <WifiOff className="w-4 h-4 text-warning" />
+      <span>Offline - connect to get quotes</span>
+    </div>
+  );
+}
+
+/**
  * Main Quote Display Component
  *
  * Displays bridge quote information including:
@@ -300,6 +324,7 @@ function FeeBreakdown({
  * - Total fees, estimated time, and route steps
  * - Expandable fee breakdown
  * - Price impact warnings
+ * - Offline state message when disconnected
  */
 export function QuoteDisplay({
   quote,
@@ -307,6 +332,13 @@ export function QuoteDisplay({
   error,
   className,
 }: QuoteDisplayProps) {
+  const isOnline = useOnlineStatus();
+
+  // Show offline message when not connected
+  if (!isOnline) {
+    return <OfflineQuoteMessage className={className} />;
+  }
+
   // Show nothing if no quote and not loading
   if (!quote && !isLoading && !error) {
     return null;
