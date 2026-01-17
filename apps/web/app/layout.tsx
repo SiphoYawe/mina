@@ -10,25 +10,26 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Mina Bridge',
+  title: 'Mina',
   description: 'Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Mina Bridge',
+    title: 'Mina',
   },
-  applicationName: 'Mina Bridge',
+  applicationName: 'Mina',
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
-      { url: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon-192.svg', sizes: 'any', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
 };
@@ -53,8 +54,8 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Mina Bridge" />
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <meta name="apple-mobile-web-app-title" content="Mina" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${inter.variable} font-sans`}>
         <MinaProvider>
