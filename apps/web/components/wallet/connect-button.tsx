@@ -7,6 +7,7 @@ import { Copy, Check, ChevronDown, LogOut, ExternalLink } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Wallet01Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/utils/share';
 
 // Helper to truncate address
 const truncateAddress = (address: string) =>
@@ -87,27 +88,10 @@ export function ConnectButton({
     e.preventDefault();
     if (!address) return;
 
-    try {
-      // Try modern clipboard API first
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(address);
-      } else {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = address;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
+    const success = await copyToClipboard(address);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy address:', err);
     }
   }, [address]);
 

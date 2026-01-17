@@ -8,7 +8,7 @@ import { ConfettiCelebration } from '@/components/shared/confetti';
 import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
-import type { ShareReceiptData } from '@/lib/utils/share';
+import { copyToClipboard, type ShareReceiptData } from '@/lib/utils/share';
 import {
   Dialog,
   DialogContent,
@@ -468,12 +468,10 @@ function ErrorDetails({
       userMessage: errorDetails?.userMessage,
       timestamp: new Date().toISOString(),
     }, null, 2);
-    try {
-      await navigator.clipboard.writeText(details);
+    const success = await copyToClipboard(details);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('[ErrorDetails] Failed to copy to clipboard:', err);
     }
   }, [error, errorDetails]);
 

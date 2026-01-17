@@ -203,11 +203,33 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Copy text to clipboard
+ * Copy text to clipboard with fallback for older browsers
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(text);
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    // Fallback for older browsers or insecure contexts
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    const success = document.execCommand('copy');
+    document.body.removeChild(textArea);
+
+    if (!success) {
+      throw new Error('execCommand copy failed');
+    }
     return true;
   } catch (err) {
     console.error('[share] Failed to copy to clipboard:', err);

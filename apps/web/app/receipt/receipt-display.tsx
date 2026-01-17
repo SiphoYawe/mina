@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowDown, ExternalLink, ArrowLeft, Copy, Check } from 'lucide-react';
 import { useState, useCallback } from 'react';
-import { parseShareUrl, type ShareReceiptData } from '@/lib/utils/share';
+import { parseShareUrl, copyToClipboard, type ShareReceiptData } from '@/lib/utils/share';
 import { ShareReceiptButton } from '@/components/shared/share-receipt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,12 +82,10 @@ function ReceiptCard({ receipt }: { receipt: ShareReceiptData }) {
     : null;
 
   const handleCopyHash = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(receipt.txHash);
+    const success = await copyToClipboard(receipt.txHash);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
   }, [receipt.txHash]);
 
