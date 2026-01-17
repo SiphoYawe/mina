@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  /* Reown/AppKit Font Override - must be defined at root level */
+  --w3m-font-family: Inter, system-ui, -apple-system, sans-serif;
+
   /* Background Colors */
   --bg-base: #09090B;
   --bg-surface: #111113;
@@ -156,4 +159,27 @@
 canvas.confetti-canvas {
   pointer-events: none !important;
   z-index: 9999;
+}
+
+/* Reown/AppKit Modal - Force consistent font family */
+/* Some internal elements don't inherit --w3m-font-family correctly */
+w3m-modal,
+w3m-modal *,
+w3m-button,
+w3m-button *,
+w3m-connect-button,
+w3m-connect-button *,
+w3m-account-button,
+w3m-account-button *,
+w3m-network-button,
+w3m-network-button *,
+[class*="w3m-"],
+[class*="wui-"] {
+  font-family: Inter, system-ui, -apple-system, sans-serif !important;
+}
+
+/* Target shadow DOM host elements */
+:host,
+:host * {
+  font-family: Inter, system-ui, -apple-system, sans-serif !important;
 }
