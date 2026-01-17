@@ -2,7 +2,9 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, X, Star, Clock, DollarSign, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Settings01Icon, FavouriteIcon, Timer02Icon, BitcoinEllipseIcon } from '@hugeicons/core-free-icons';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +17,9 @@ import type { RoutePreference } from '@siphoyawe/mina-sdk';
  * Route option icons mapping
  */
 const ROUTE_ICONS = {
-  recommended: Star,
-  fastest: Clock,
-  cheapest: DollarSign,
+  recommended: FavouriteIcon,
+  fastest: Timer02Icon,
+  cheapest: BitcoinEllipseIcon,
 } as const;
 
 interface SettingsPanelProps {
@@ -252,7 +254,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
 
             <div className="space-y-2">
               {ROUTE_OPTIONS.map((option) => {
-                const Icon = ROUTE_ICONS[option.value];
+                const iconData = ROUTE_ICONS[option.value];
                 const isSelected = routePreference === option.value;
 
                 return (
@@ -267,10 +269,14 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
                     )}
                     aria-pressed={isSelected}
                   >
-                    <Icon className={cn(
-                      "w-5 h-5 flex-shrink-0",
-                      isSelected ? "text-accent-primary" : "text-text-muted"
-                    )} />
+                    <HugeiconsIcon
+                      icon={iconData}
+                      size={20}
+                      className={cn(
+                        "flex-shrink-0",
+                        isSelected ? "text-accent-primary" : "text-text-muted"
+                      )}
+                    />
                     <div>
                       <div className={cn(
                         "text-small font-medium",
@@ -309,7 +315,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
         className="hover:bg-bg-elevated text-text-secondary hover:text-text-primary transition-colors"
         aria-label="Open settings"
       >
-        <Settings className="w-5 h-5" />
+        <HugeiconsIcon icon={Settings01Icon} size={20} />
       </Button>
 
       {/* Portal to body for proper fixed positioning */}

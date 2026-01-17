@@ -3,7 +3,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useAccount } from 'wagmi';
-import { Wallet, Copy, Check, ChevronDown, LogOut, ExternalLink } from 'lucide-react';
+import { Copy, Check, ChevronDown, LogOut, ExternalLink } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Wallet01Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 
 // Helper to truncate address
@@ -246,7 +248,7 @@ export function ConnectButton({
       {/* Backdrop to cover shimmer inside button */}
       <div className="absolute -z-20 [background:var(--bg)] [border-radius:var(--radius)] [inset:var(--cut)]" />
 
-      <Wallet className="w-4 h-4" />
+      <HugeiconsIcon icon={Wallet01Icon} size={16} />
       <span>Connect Wallet</span>
     </button>
   );

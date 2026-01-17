@@ -13,7 +13,7 @@ import { ExecutionModal } from './execution-modal';
 import { SettingsPanel } from './settings-panel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { NetworkSwitchPrompt } from '@/components/wallet';
 import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution, useTransactionHistory } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
@@ -280,31 +280,21 @@ export function BridgeForm() {
 
   return (
     <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <div className="relative">
-          <div className="text-center">
-            <CardTitle>Bridge Assets</CardTitle>
-            <CardDescription>
-              Bridge from 40+ chains to Hyperliquid
-            </CardDescription>
-          </div>
-          {/* Settings and Refresh buttons */}
-          <div className="absolute right-0 top-0 flex items-center gap-1">
-            <SettingsPanel onSettingsChange={refetchQuote} />
-            <button
-              onClick={refreshChains}
-              disabled={isLoading}
-              className={cn(
-                'p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
-                isLoading && 'animate-spin'
-              )}
-              title="Refresh chains"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </CardHeader>
+      {/* Settings and Refresh buttons - top right */}
+      <div className="flex items-center justify-end gap-1 mb-4">
+        <SettingsPanel onSettingsChange={refetchQuote} />
+        <button
+          onClick={refreshChains}
+          disabled={isLoading}
+          className={cn(
+            'p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            isLoading && 'animate-spin'
+          )}
+          title="Refresh chains"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
 
       <CardContent className="space-y-4">
         {/* Network Switch Prompt - Enhanced with current vs target chain display */}

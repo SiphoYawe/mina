@@ -20,6 +20,12 @@ importers:
       '@coinbase/wallet-sdk':
         specifier: ^4.3.7
         version: 4.3.7(typescript@5.9.3)
+      '@hugeicons/core-free-icons':
+        specifier: ^3.1.1
+        version: 3.1.1
+      '@hugeicons/react':
+        specifier: ^1.1.4
+        version: 1.1.4(react@18.3.1)
       '@metamask/sdk':
         specifier: ^0.33.1
         version: 0.33.1
@@ -548,6 +554,18 @@ packages:
       '@ethereumjs/rlp': 4.0.1
       ethereum-cryptography: 2.2.1
       micro-ftch: 0.3.1
+    dev: false
+
+  /@hugeicons/core-free-icons@3.1.1:
+    resolution: {integrity: sha512-UpS2lUQFi5sKyJSWwM6rO+BnPLvVz1gsyCpPHeZyVuZqi89YH8ksliza4cwaODqKOZyeXmG8juo1ty4QtQofkg==}
+    dev: false
+
+  /@hugeicons/react@1.1.4(react@18.3.1):
+    resolution: {integrity: sha512-gsc3eZyd2fGqRUThW9+lfjxxsOkz6KNVmRXRgJjP32GL0OnnLJnl3hytKt47CBbiQj2xE2kCw+rnP3UQCThcKw==}
+    peerDependencies:
+      react: '>=16.0.0'
+    dependencies:
+      react: 18.3.1
     dev: false
 
   /@humanwhocodes/config-array@0.13.0:
