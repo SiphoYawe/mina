@@ -11,15 +11,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Mina — Bridge to Hyperliquid',
-  description: 'Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account',
+  title: 'Mina — Bridge & Trade on Hyperliquid',
+  description: 'Bridge from 40+ chains and trade 30,000+ pairs on Hyperliquid. One-click onboarding with pair trading, basket trades, and up to 50x leverage.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Mina',
   },
-  applicationName: 'Mina — Bridge to Hyperliquid',
+  applicationName: 'Mina — Bridge & Trade on Hyperliquid',
   formatDetection: {
     telephone: false,
   },
@@ -34,22 +34,22 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'Mina — Bridge to Hyperliquid',
-    description: 'Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account',
+    title: 'Mina — Bridge & Trade on Hyperliquid',
+    description: 'Bridge from 40+ chains and trade 30,000+ pairs on Hyperliquid. One-click onboarding with pair trading, basket trades, and up to 50x leverage.',
     type: 'website',
     images: [
       {
         url: '/og.png',
         width: 1200,
         height: 630,
-        alt: 'Mina - Bridge to Hyperliquid',
+        alt: 'Mina - Bridge & Trade on Hyperliquid',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Mina — Bridge to Hyperliquid',
-    description: 'Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account',
+    title: 'Mina — Bridge & Trade on Hyperliquid',
+    description: 'Bridge from 40+ chains and trade 30,000+ pairs on Hyperliquid. One-click onboarding with pair trading, basket trades, and up to 50x leverage.',
     images: ['/og.png'],
   },
 };

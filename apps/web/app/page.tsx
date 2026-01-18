@@ -62,7 +62,7 @@ export default function Home() {
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="relative z-20 text-text-primary mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
         >
-          Bridge to
+          Bridge & Trade on
           <br />
           <span className="text-accent-primary">Hyperliquid</span>
         </motion.h1>
@@ -72,8 +72,8 @@ export default function Home() {
           transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="relative z-20 text-body text-text-secondary max-w-md mx-auto mb-6 sm:mb-10 px-2"
         >
-          Seamlessly bridge assets from 40+ chains directly to your Hyperliquid trading account.
-          One click, zero hassle.
+          Bridge from 40+ chains and trade 30,000+ pairs. One-click onboarding with pair trading,
+          basket trades, and up to 50x leverage.
         </motion.p>
 
         {/* Issue 7 fix: Bridge Form wrapped with Error Boundary */}

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Mina — Bridge to Hyperliquid",
+  "name": "Mina — Bridge & Trade on Hyperliquid",
   "short_name": "Mina",
-  "description": "Cross-chain bridge to Hyperliquid - Bridge from 40+ chains directly to your trading account",
+  "description": "Bridge from 40+ chains and trade 30,000+ pairs on Hyperliquid. One-click onboarding with pair trading, basket trades, and up to 50x leverage.",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -40,8 +40,15 @@
     {
       "name": "Bridge Assets",
       "short_name": "Bridge",
-      "description": "Start a new bridge transaction",
+      "description": "Bridge assets from 40+ chains to Hyperliquid",
       "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pair Trading",
+      "short_name": "Trade",
+      "description": "Trade 30,000+ pairs with up to 50x leverage",
+      "url": "/trade",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
