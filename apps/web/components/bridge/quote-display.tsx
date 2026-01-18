@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Clock,
   Layers,
@@ -15,6 +15,8 @@ import {
   Calculator,
   Zap,
 } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { FavouriteIcon, Timer02Icon, BitcoinEllipseIcon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/lib/hooks/use-online-status';
 import type { Quote, Token } from '@siphoyawe/mina-sdk';
@@ -82,6 +84,87 @@ function formatTime(seconds: number): string {
     return `~${minutes}m`;
   }
   return `~${minutes}m ${remainingSeconds}s`;
+}
+
+/**
+ * Animated digit component with roller effect
+ */
+function AnimatedDigit({ digit, flash }: { digit: string; flash: boolean }) {
+  const isNumber = /\d/.test(digit);
+
+  return (
+    <span className="relative inline-block overflow-hidden">
+      <AnimatePresence mode="popLayout">
+        <motion.span
+          key={digit}
+          initial={{ y: 20, opacity: 0, scale: 0.8 }}
+          animate={{
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            color: flash && isNumber ? ['inherit', '#22c55e', 'inherit'] : 'inherit',
+          }}
+          exit={{ y: -20, opacity: 0, scale: 0.8 }}
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 30,
+            color: { duration: 0.6, times: [0, 0.3, 1] }
+          }}
+          className="inline-block"
+        >
+          {digit}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/**
+ * Animated number display with roller animation
+ */
+function AnimatedAmount({ value, className }: { value: string; className?: string }) {
+  const [flash, setFlash] = useState(false);
+  const prevValue = useRef(value);
+  const flashTimeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (prevValue.current !== value) {
+      setFlash(true);
+      prevValue.current = value;
+
+      // Clear any existing timeout
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+      }
+
+      flashTimeoutRef.current = setTimeout(() => {
+        setFlash(false);
+      }, 600);
+    }
+
+    return () => {
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+      }
+    };
+  }, [value]);
+
+  const digits = value.split('');
+
+  return (
+    <motion.div
+      className={cn("flex items-baseline tabular-nums", className)}
+      animate={flash ? {
+        textShadow: ['0 0 0px transparent', '0 0 20px rgba(34, 197, 94, 0.6)', '0 0 0px transparent']
+      } : {}}
+      transition={{ duration: 0.6, times: [0, 0.3, 1] }}
+    >
+      {digits.map((digit, i) => (
+        <AnimatedDigit key={`${i}-${digit}`} digit={digit} flash={flash} />
+      ))}
+    </motion.div>
+  );
 }
 
 /**
@@ -252,8 +335,16 @@ function TokenBadge({ token }: { token: Token }) {
 }
 
 /**
- * Inline route preference selector
- * Allows quick switching between recommended, fastest, and cheapest routes
+ * Route preference icons mapping - matches settings panel
+ */
+const ROUTE_ICONS = {
+  recommended: FavouriteIcon,
+  fastest: Timer02Icon,
+  cheapest: BitcoinEllipseIcon,
+} as const;
+
+/**
+ * Inline route preference selector with consistent icons
  */
 function RoutePreferenceSelector({
   value,
@@ -265,15 +356,15 @@ function RoutePreferenceSelector({
   isLoading?: boolean;
 }) {
   const options = [
-    { value: 'recommended' as const, label: 'Best', icon: Sparkles },
-    { value: 'fastest' as const, label: 'Fast', icon: Zap },
-    { value: 'cheapest' as const, label: 'Cheap', icon: Fuel },
+    { value: 'recommended' as const, label: 'Best' },
+    { value: 'fastest' as const, label: 'Fast' },
+    { value: 'cheapest' as const, label: 'Cheap' },
   ];
 
   return (
     <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-surface/60 border border-border-subtle/50">
       {options.map((option) => {
-        const Icon = option.icon;
+        const IconData = ROUTE_ICONS[option.value];
         const isSelected = value === option.value;
         return (
           <button
@@ -288,7 +379,7 @@ function RoutePreferenceSelector({
               isLoading && "opacity-50 cursor-not-allowed"
             )}
           >
-            <Icon className="w-3.5 h-3.5" />
+            <HugeiconsIcon icon={IconData} size={14} />
             <span>{option.label}</span>
           </button>
         );
@@ -433,7 +524,7 @@ function OfflineQuoteMessage({ className }: { className?: string }) {
  * Main Quote Display Component
  *
  * Displays bridge quote information including:
- * - Expected output amount with token
+ * - Expected output amount with token (animated on update)
  * - Total fees, estimated time, and route steps
  * - Expandable fee breakdown
  * - Price impact warnings
@@ -519,22 +610,69 @@ export function QuoteDisplay({
 
         <div
           className={cn(
-            'relative p-5 rounded-xl border-2 transition-all duration-standard backdrop-blur-sm',
+            'relative rounded-xl border-2 transition-all duration-standard backdrop-blur-sm overflow-hidden',
             showHighImpactWarning
               ? 'border-warning/40 bg-warning/5'
               : 'border-success/30 bg-gradient-to-br from-bg-elevated/60 via-bg-surface/40 to-bg-elevated/60'
           )}
         >
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-1.5">
+          {/* Main content area */}
+          <div className="p-5">
+            {/* Header row with label and token badge */}
+            <div className="flex items-center justify-between mb-3">
               <p className="text-caption text-text-muted uppercase tracking-wider font-medium">You&apos;ll receive</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
-                  {outputAmount}
-                </p>
+              <TokenBadge token={quote.toToken} />
+            </div>
+
+            {/* Large animated amount */}
+            <AnimatedAmount
+              value={outputAmount}
+              className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight"
+            />
+          </div>
+
+          {/* Stats bar */}
+          <div className="px-5 py-3 bg-bg-surface/30 border-t border-border-subtle/30">
+            <div className="flex items-center justify-between gap-3">
+              {/* Fee stat */}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Fuel className="w-3.5 h-3.5 text-success" />
+                </div>
+                <div>
+                  <p className="text-small font-semibold text-success tabular-nums">{formatUsd(quote.fees.totalUsd)}</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-wide">fees</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-8 bg-border-subtle/50" />
+
+              {/* Time stat */}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 text-accent-primary" />
+                </div>
+                <div>
+                  <p className="text-small font-semibold text-text-primary tabular-nums">{formatTime(quote.estimatedTime)}</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-wide">time</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-8 bg-border-subtle/50" />
+
+              {/* Steps stat */}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-accent-muted/10 flex items-center justify-center">
+                  <Layers className="w-3.5 h-3.5 text-accent-muted" />
+                </div>
+                <div>
+                  <p className="text-small font-semibold text-text-primary tabular-nums">{quote.steps.length}</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-wide">{quote.steps.length === 1 ? 'step' : 'steps'}</p>
+                </div>
               </div>
             </div>
-            <TokenBadge token={quote.toToken} />
           </div>
         </div>
       </div>
@@ -549,28 +687,6 @@ export function QuoteDisplay({
           />
         </div>
       )}
-
-      {/* Quick stats row - Premium pill badges */}
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
-          <span className="text-success font-semibold text-small">
-            {formatUsd(quote.fees.totalUsd)}
-          </span>
-          <span className="text-text-muted text-caption">fees</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
-          <Clock className="w-3.5 h-3.5 text-accent-primary" />
-          <span className="text-text-primary font-medium text-small">{formatTime(quote.estimatedTime)}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface/60 border border-border-subtle/50 backdrop-blur-sm">
-          <Layers className="w-3.5 h-3.5 text-accent-primary" />
-          <span className="text-text-primary font-medium text-small">
-            {quote.steps.length} {quote.steps.length === 1 ? 'step' : 'steps'}
-          </span>
-        </div>
-      </div>
 
       {/* Fee breakdown */}
       <FeeBreakdown
