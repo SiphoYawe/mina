@@ -422,9 +422,20 @@ function mapLifiBalanceToBalance(lifiToken: LifiTokenBalanceResponse): BalanceWi
 }
 
 /**
- * Get RPC URL for a chain from LI.FI chains data
+ * Cache for RPC URLs by chain ID
+ */
+const rpcUrlCache: Map<number, string> = new Map();
+
+/**
+ * Get RPC URL for a chain from LI.FI chains data (with caching)
  */
 async function getRpcUrlForChain(chainId: number): Promise<string> {
+  // Check cache first
+  const cached = rpcUrlCache.get(chainId);
+  if (cached) {
+    return cached;
+  }
+
   const url = `${LIFI_API_URL}/v1/chains`;
   const response = await fetchWithTimeout(url);
 
@@ -439,7 +450,9 @@ async function getRpcUrlForChain(chainId: number): Promise<string> {
     throw new Error(`No RPC URL found for chain ${chainId}`);
   }
 
-  return chain.metamask.rpcUrls[0];
+  const rpcUrl = chain.metamask.rpcUrls[0];
+  rpcUrlCache.set(chainId, rpcUrl);
+  return rpcUrl;
 }
 
 /**
