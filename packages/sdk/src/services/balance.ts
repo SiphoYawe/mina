@@ -523,6 +523,8 @@ async function fetchBalanceFromApi(
   chainId: number,
   tokenAddress: string
 ): Promise<BalanceWithMetadata> {
+  console.log(`[Mina SDK] Fetching balance for ${address} on chain ${chainId}, token ${tokenAddress}`);
+
   // Fetch token metadata from LI.FI
   const url = `${LIFI_API_URL}/v1/token?chain=${chainId}&token=${tokenAddress}`;
   const response = await fetchWithTimeout(url);
@@ -540,6 +542,7 @@ async function fetchBalanceFromApi(
 
   // Fetch actual balance via RPC
   const balanceRaw = await fetchBalanceViaRpc(address, chainId, tokenAddress);
+  console.log(`[Mina SDK] RPC balance result: ${balanceRaw} (${Number(balanceRaw) / Math.pow(10, data.decimals)} ${data.symbol})`);
 
   // Add balance to the token data
   const tokenDataWithBalance = {
