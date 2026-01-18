@@ -8,7 +8,6 @@
 
 <p align="center">
   <a href="#features">Features</a> •
-  <a href="#quick-start">Quick Start</a> •
   <a href="#sdk">SDK</a> •
   <a href="#cli">CLI</a> •
   <a href="#trading">Trading</a> •
@@ -19,8 +18,8 @@
   <a href="https://www.npmjs.com/package/@siphoyawe/mina-sdk">
     <img src="https://img.shields.io/npm/v/@siphoyawe/mina-sdk?style=flat-square&color=blue" alt="npm version" />
   </a>
-  <a href="https://mina-169e3f09.mintlify.app/">
-    <img src="https://img.shields.io/badge/docs-mintlify-blue?style=flat-square" alt="Documentation" />
+  <a href="https://docs.usemina.co/">
+    <img src="https://img.shields.io/badge/docs-view%20docs-blue?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://github.com/SiphoYawe/mina/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
@@ -37,7 +36,7 @@
 
 | Component | Description |
 |-----------|-------------|
-| **Web App** | Consumer-facing bridge & trading interface with premium "Dark Luxe" design |
+| **Web App** | Consumer-facing bridge & trading interface |
 | **SDK** | TypeScript library (`@siphoyawe/mina-sdk`) for developers to integrate Hyperliquid onboarding |
 | **CLI** | Terminal-based bridging tool for power users and automation |
 
@@ -96,54 +95,22 @@ Mina provides a complete end-to-end solution:
 
 | Feature | Description |
 |---------|-------------|
-| **Dark Luxe Design** | Premium visual design optimized for trading |
 | **PWA Support** | Install as a native app on mobile and desktop |
 | **Offline Detection** | Graceful handling of network disconnections |
 | **500+ Wallets** | Connect with any wallet via Reown AppKit |
-| **Share Receipts** | Share transaction receipts via URL |
 | **Transaction History** | Track all your bridge transactions |
 | **Globe Visualization** | Interactive 3D globe showing bridge routes |
-| **Confetti Celebration** | Satisfying success animations |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- pnpm 8+
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/SiphoYawe/mina.git
-cd mina
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-```
-
-The web app will be available at `http://localhost:3000`.
 
 ---
 
 ## SDK
 
-[![npm](https://img.shields.io/npm/v/@siphoyawe/mina-sdk)](https://www.npmjs.com/package/@siphoyawe/mina-sdk) [![Documentation](https://img.shields.io/badge/docs-mintlify-blue)](https://mina-169e3f09.mintlify.app/)
+[![npm](https://img.shields.io/npm/v/@siphoyawe/mina-sdk)](https://www.npmjs.com/package/@siphoyawe/mina-sdk)
 
 The **Mina SDK** powers all bridging functionality across the web app and CLI. It provides a clean, type-safe API for integrating Hyperliquid onboarding into any application.
 
-### Installation
-
 ```bash
 npm install @siphoyawe/mina-sdk
-# or
-pnpm add @siphoyawe/mina-sdk
 ```
 
 ### Basic Usage
@@ -151,37 +118,27 @@ pnpm add @siphoyawe/mina-sdk
 ```typescript
 import { Mina } from '@siphoyawe/mina-sdk';
 
-// Initialize the client
 const mina = new Mina({
   integrator: 'my-app',
-  autoDeposit: true,      // Auto-deposit to Hyperliquid L1
-  defaultSlippage: 0.005, // 0.5%
+  autoDeposit: true,
 });
 
-// Get a bridge quote
 const quote = await mina.getQuote({
   fromChainId: 42161,     // Arbitrum
   toChainId: 999,         // HyperEVM
-  fromToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC
+  fromToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
   toToken: '0xb88339cb7199b77e23db6e890353e22632ba630f',
-  fromAmount: '1000000000', // 1000 USDC
+  fromAmount: '1000000000',
   fromAddress: '0x...',
 });
 
-// Execute the bridge
-const result = await mina.execute({
-  quote,
-  signer: walletClient,
-  onStepUpdate: (step, status) => {
-    console.log(`${step.type}: ${status.status}`);
-  },
-});
+const result = await mina.execute({ quote, signer: walletClient });
 ```
 
 ### React Hooks
 
 ```tsx
-import { MinaProvider, useMina, useQuote } from '@siphoyawe/mina-sdk/react';
+import { MinaProvider, useQuote } from '@siphoyawe/mina-sdk/react';
 
 function App() {
   return (
@@ -190,32 +147,7 @@ function App() {
     </MinaProvider>
   );
 }
-
-function BridgeForm() {
-  const { mina } = useMina();
-  const { quote, isLoading } = useQuote({
-    fromChain: 42161,
-    toChain: 999,
-    fromToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    toToken: '0xb88339cb7199b77e23db6e890353e22632ba630f',
-    amount: '1000000000',
-    fromAddress: walletAddress,
-  });
-  // ...
-}
 ```
-
-### SDK API Reference
-
-| Method | Description |
-|--------|-------------|
-| `new Mina(config)` | Initialize the Mina client |
-| `mina.getChains()` | Get all 40+ supported source chains |
-| `mina.getTokens(chainId)` | Get bridgeable tokens for a chain |
-| `mina.getBalance(params)` | Get user token balance |
-| `mina.getQuote(params)` | Fetch bridge quote with fees and ETA |
-| `mina.execute(options)` | Execute bridge transaction |
-| `mina.getStatus(txHash)` | Check transaction status |
 
 ### SDK Features
 
@@ -228,114 +160,48 @@ function BridgeForm() {
 | **Event System** | Subscribe to execution events for real-time updates |
 | **Auto-Deposit** | Automatic deposit to Hyperliquid L1 trading account |
 
-📚 **[Full SDK Documentation →](https://mina-169e3f09.mintlify.app/)**
+📦 **[View on NPM →](https://www.npmjs.com/package/@siphoyawe/mina-sdk)**
+
+📚 **[Full SDK Documentation →](https://docs.usemina.co/)**
 
 ---
 
 ## CLI
 
+[![npm](https://img.shields.io/npm/v/@siphoyawe/mina-cli)](https://www.npmjs.com/package/@siphoyawe/mina-cli)
+
 The **Mina CLI** provides terminal-based bridging for power users and automation workflows.
 
-### Installation
-
 ```bash
-# Install globally
 npm install -g @siphoyawe/mina-cli
-
-# Or run with npx
-npx @siphoyawe/mina-cli
 ```
 
 ### Commands
 
-#### Interactive Wizard
-
-```bash
-mina
-# or
-mina wizard
-```
-
-Step-by-step guided bridge experience with chain/token selection.
-
-#### Get Quote
-
-```bash
-mina quote --from arbitrum --token USDC --amount 1000 [--json]
-```
-
-Preview fees, estimated time, and price impact without executing.
-
-#### Execute Bridge
-
-```bash
-mina bridge --from arbitrum --token USDC --amount 1000 \
-  [--key ./wallet.json] [--yes] [--auto-deposit]
-```
-
-Execute a bridge transaction with optional auto-confirmation.
-
-#### Check Status
-
-```bash
-mina status <txHash> [--watch]
-```
-
-Monitor transaction progress with real-time updates.
-
-#### List Chains
-
-```bash
-mina chains [--json]
-```
-
-Display all 40+ supported source chains.
-
-#### List Tokens
-
-```bash
-mina tokens [--chain arbitrum] [--json]
-```
-
-Show bridgeable tokens for a specific chain.
-
-#### Check Balance
-
-```bash
-mina balance --address 0x... [--chain arbitrum] [--all] [--json]
-```
-
-View wallet balances across one or all chains.
-
-#### Transaction History
-
-```bash
-mina history [--limit 10] [--address 0x...]
-```
-
-View your bridge transaction history.
-
-#### Configuration
-
-```bash
-mina config list
-mina config get slippage
-mina config set slippage 0.5
-mina config set autoDeposit true
-```
-
-Manage persistent CLI settings.
+| Command | Description |
+|---------|-------------|
+| `mina` | Interactive wizard for guided bridging |
+| `mina quote` | Get bridge quote without executing |
+| `mina bridge` | Execute bridge transaction |
+| `mina status <txHash>` | Monitor transaction progress |
+| `mina chains` | List all 40+ supported chains |
+| `mina tokens` | List bridgeable tokens |
+| `mina balance` | Check wallet balances |
+| `mina history` | View transaction history |
+| `mina config` | Manage CLI settings |
 
 ### CLI Features
 
 | Feature | Description |
 |---------|-------------|
-| **Beautiful TUI** | Ink-based terminal UI with dark luxe theme |
+| **Beautiful TUI** | Ink-based terminal UI |
 | **JSON Output** | Machine-readable output for scripting (`--json`) |
 | **Interactive Selection** | Arrow-key navigation for chains and tokens |
 | **Secure Key Input** | Hidden input for private key prompts |
 | **Persistent Config** | Settings saved to `~/.mina/config.json` |
 | **Auto-Retry** | Automatic retry on transient failures |
+
+📦 **[View on NPM →](https://www.npmjs.com/package/@siphoyawe/mina-cli)**
 
 ---
 
@@ -370,71 +236,6 @@ Simple directional trades:
 - **Margin Info** — Monitor margin usage
 - **Close Positions** — One-click position closing
 - **Adjust Positions** — Modify size, leverage, or risk parameters
-
----
-
-## Technical Architecture
-
-### System Overview
-
-```
-┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Source Chain   │────▶│   LI.FI     │────▶│    HyperEVM     │────▶│ Hyperliquid L1  │
-│   (40+ chains)  │     │   Router    │     │   (Chain 999)   │     │   (Trading)     │
-└─────────────────┘     └─────────────┘     └─────────────────┘     └─────────────────┘
-```
-
-### Monorepo Structure
-
-```
-mina/
-├── apps/
-│   └── web/              # Next.js web application
-├── packages/
-│   ├── sdk/              # @siphoyawe/mina-sdk
-│   └── cli/              # @siphoyawe/mina-cli
-└── docs/                 # Documentation
-```
-
-### Web App Architecture
-
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Next.js 14 (App Router) |
-| **Styling** | Tailwind CSS + shadcn/ui |
-| **Components** | Radix UI primitives |
-| **Wallet** | Reown AppKit (500+ wallets) |
-| **Web3** | Wagmi v2 + Viem |
-| **State** | Zustand + TanStack Query |
-| **Animations** | Framer Motion |
-
-### SDK Architecture
-
-| Layer | Technology |
-|-------|------------|
-| **Bridge Routing** | LI.FI SDK |
-| **Deposit** | Hyperliquid API |
-| **Caching** | Custom TTL caches |
-| **Types** | Full TypeScript |
-| **Build** | tsup |
-
-### CLI Architecture
-
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Commander.js |
-| **UI** | Ink (React for CLI) |
-| **Styling** | Chalk |
-| **Storage** | JSON file storage |
-
-### Integrations
-
-| Service | Purpose |
-|---------|---------|
-| **[LI.FI](https://li.fi/)** | Cross-chain route aggregation |
-| **[Hyperliquid](https://hyperliquid.xyz/)** | L1 trading & deposits |
-| **[Pear Protocol](https://pear.garden/)** | Pair & basket trading |
-| **[Reown AppKit](https://reown.com/)** | Wallet connection |
 
 ---
 
@@ -474,35 +275,10 @@ mina/
 
 ---
 
-## Feature Comparison
-
-| Feature | Web App | SDK | CLI |
-|---------|:-------:|:---:|:---:|
-| Bridge from 40+ chains | ✓ | ✓ | ✓ |
-| Auto-deposit to L1 | ✓ | ✓ | ✓ |
-| Route optimization | ✓ | ✓ | ✓ |
-| Slippage control | ✓ | ✓ | ✓ |
-| Quote preview | ✓ | ✓ | ✓ |
-| Fee breakdown | ✓ | ✓ | ✓ |
-| Price impact warnings | ✓ | ✓ | ✓ |
-| Pair trading | ✓ | — | — |
-| Basket trading | ✓ | — | — |
-| Position tracking | ✓ | — | — |
-| Transaction history | ✓ | — | ✓ |
-| Status monitoring | ✓ | ✓ | ✓ |
-| Share receipts | ✓ | — | — |
-| PWA support | ✓ | — | — |
-| Interactive wizard | — | — | ✓ |
-| JSON output | — | — | ✓ |
-| Config management | — | — | ✓ |
-
----
-
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Monorepo** | Turborepo + pnpm |
 | **Framework** | Next.js 14 (App Router) |
 | **Styling** | Tailwind CSS + shadcn/ui |
 | **UI Components** | Radix UI primitives |
@@ -512,25 +288,18 @@ mina/
 | **Trading** | Pear Protocol API |
 | **State** | Zustand + TanStack Query |
 | **Animations** | Framer Motion |
-| **CLI Framework** | Commander.js + Ink |
-| **SDK Build** | tsup |
-| **Icons** | Lucide React |
+| **CLI** | Commander.js + Ink |
 
 ---
 
 ## Links
 
-- **SDK Documentation**: [mina-169e3f09.mintlify.app](https://mina-169e3f09.mintlify.app/)
-- **NPM Package**: [@siphoyawe/mina-sdk](https://www.npmjs.com/package/@siphoyawe/mina-sdk)
+- **SDK Documentation**: [docs.usemina.co](https://docs.usemina.co/)
+- **SDK on NPM**: [@siphoyawe/mina-sdk](https://www.npmjs.com/package/@siphoyawe/mina-sdk)
+- **CLI on NPM**: [@siphoyawe/mina-cli](https://www.npmjs.com/package/@siphoyawe/mina-cli)
 - **Hyperliquid**: [hyperliquid.xyz](https://hyperliquid.xyz/)
 - **LI.FI**: [li.fi](https://li.fi/)
 - **Pear Protocol**: [pear.garden](https://pear.garden/)
-
----
-
-## Hackathon Context
-
-Built for the **Hyperliquid London Community Hackathon** (January 16-18, 2026) for the **LI.FI - One-Click Onboarding to Hyperliquid** track.
 
 ---
 
