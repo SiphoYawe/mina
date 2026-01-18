@@ -46,9 +46,25 @@
     @apply border-border-subtle;
   }
 
+  /* MOBILE-002 Fix: Ensure proper scrolling and touch handling on mobile */
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-bg-base text-text-primary antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* MOBILE-002 Fix: Ensure body allows scrolling and has safe-area support */
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    padding-bottom: env(safe-area-inset-bottom);
+    /* MOBILE-003 Fix: Enable touch manipulation for better scroll performance */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Typography */
@@ -75,6 +91,21 @@
 }
 
 @layer utilities {
+  /* MOBILE-004 Fix: Safe area utilities for notched devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* MOBILE-005 Fix: Minimum touch target size for mobile accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   /* Glow effects */
   .glow {
     box-shadow: 0 0 20px var(--accent-glow);

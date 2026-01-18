@@ -77,8 +77,11 @@ function ModeTab({ mode, currentMode, isDisabled = false, onClick }: ModeTabProp
       aria-selected={isActive}
       role="tab"
       className={cn(
-        'flex-1 px-4 py-2 text-small font-medium rounded-lg transition-all duration-micro',
+        // MOBILE-006 Fix: Increased touch target height for better mobile accessibility
+        'flex-1 px-4 py-3 min-h-[44px] text-small font-medium rounded-lg transition-all duration-micro',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
+        // MOBILE-006 Fix: Added active state for touch feedback
+        'active:scale-[0.98] active:brightness-95',
         isActive
           ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary/30 shadow-sm'
           : 'text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50',

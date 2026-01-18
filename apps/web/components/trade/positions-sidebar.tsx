@@ -151,22 +151,9 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
     );
   }
 
-  // In simulation mode without auth, show simulated empty state
+  // In simulation mode without auth, don't show anything (no positions to display)
   if (!isAuthenticated && isSimulateMode) {
-    return (
-      <div className={cn('bg-bg-surface rounded-card p-4', className)}>
-        <h3 className="text-body font-semibold text-text-primary mb-4">
-          Open Positions <span className="text-accent-primary text-caption">[Simulation]</span>
-        </h3>
-        <div className="text-center py-8">
-          <TrendingUp className="w-8 h-8 mx-auto mb-2 text-text-muted" />
-          <p className="text-small text-text-muted">No simulated positions</p>
-          <p className="text-caption text-text-muted mt-1">
-            Positions will appear here in simulation mode
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Don't show anything if no positions (hide empty state)

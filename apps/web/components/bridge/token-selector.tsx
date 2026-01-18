@@ -141,8 +141,11 @@ const TokenOption = memo(function TokenOption({
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-micro',
+        // MOBILE-010 Fix: Increased touch target height for mobile accessibility
+        'w-full flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-all duration-micro',
         'hover:bg-bg-elevated focus:bg-bg-elevated focus:outline-none',
+        // MOBILE-010 Fix: Added touch feedback
+        'active:scale-[0.99] active:bg-bg-elevated',
         isSelected && 'bg-accent-primary/10 border border-accent-primary/30',
         isFocused && 'bg-bg-elevated ring-2 ring-accent-primary/50'
       )}
@@ -417,8 +420,8 @@ export function TokenSelector({
             </div>
           </div>
 
-          {/* Token List */}
-          <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Available tokens">
+          {/* Token List - MOBILE-011 Fix: Better scroll handling for mobile */}
+          <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto overscroll-contain p-2 -webkit-overflow-scrolling-touch" role="listbox" aria-label="Available tokens">
             {isLoading ? (
               /* Loading skeleton state */
               <div className="space-y-1">

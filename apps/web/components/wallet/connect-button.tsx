@@ -284,11 +284,11 @@ export function ConnectButton({
 
             {/* Actions */}
             <div className="p-2">
-              {/* Copy Address */}
+              {/* Copy Address - MOBILE-015 Fix: Improved touch targets */}
               <button
                 type="button"
                 onClick={handleCopyAddress}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-micro"
+                className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface active:scale-[0.98] active:bg-bg-surface transition-colors duration-micro"
               >
                 {copied ? (
                   <Check className="w-4 h-4 text-success" />
@@ -300,7 +300,7 @@ export function ConnectButton({
                 </span>
               </button>
 
-              {/* View on Explorer - WALLET-004 Fix: Use explicit explorer URL mapping */}
+              {/* View on Explorer - WALLET-004/MOBILE-015 Fix: Use explicit explorer URL mapping, improved touch targets */}
               <a
                 href={getAddressExplorerUrl(chain?.id, address)}
                 target="_blank"
@@ -309,7 +309,7 @@ export function ConnectButton({
                   e.stopPropagation();
                   setIsDropdownOpen(false);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-micro"
+                className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-surface active:scale-[0.98] active:bg-bg-surface transition-colors duration-micro"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-small">View on Explorer</span>
@@ -318,11 +318,11 @@ export function ConnectButton({
               {/* Divider */}
               <div className="my-2 border-t border-border-subtle" />
 
-              {/* Disconnect */}
+              {/* Disconnect - MOBILE-015 Fix: Improved touch targets */}
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-error hover:bg-error/10 transition-colors duration-micro"
+                className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg text-error hover:bg-error/10 active:scale-[0.98] active:bg-error/10 transition-colors duration-micro"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="text-small">Disconnect</span>

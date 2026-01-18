@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ConnectButton } from '@/components/wallet/connect-button';
 import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Terminal, Package, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spotlight } from '@/components/ui/spotlight';
 import { motion } from 'motion/react';
@@ -41,7 +41,7 @@ function BridgeFormErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-bg-base overflow-x-hidden">
+    <main className="relative min-h-screen min-h-[100dvh] bg-bg-base overflow-x-hidden overflow-y-auto pb-safe">
       {/* Header */}
       <header className="relative z-20 border-b border-border-default/30 bg-bg-base/80 backdrop-blur-3xl backdrop-saturate-150">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -96,34 +96,56 @@ export default function Home() {
           <RecentTransactions maxItems={5} />
         </motion.div>
 
-        {/* Credits */}
+        {/* Footer */}
         <motion.footer
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-16 pb-8 text-center text-caption text-text-muted"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mt-16 pb-8"
         >
-          <p>
-            Powered by{' '}
-            <a
-              href="https://www.npmjs.com/package/@siphoyawe/mina-sdk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent-primary hover:text-accent-hover transition-colors underline underline-offset-2"
-            >
-              Mina SDK
-            </a>
-            {' '}&middot;{' '}
-            Built by{' '}
-            <a
-              href="https://github.com/SiphoYawe"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent-primary hover:text-accent-hover transition-colors underline underline-offset-2"
-            >
-              Sipho Yawe
-            </a>
-          </p>
+          {/* Separator */}
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-border-default/50 to-transparent mb-8" />
+
+          {/* Footer Content */}
+          <div className="flex flex-col items-center gap-6">
+            {/* Links Row */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://www.npmjs.com/package/@siphoyawe/mina-sdk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
+              >
+                <Package className="w-3.5 h-3.5 text-accent-primary" />
+                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Mina SDK</span>
+              </a>
+
+              <a
+                href="https://www.npmjs.com/package/@siphoyawe/mina-cli"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
+              >
+                <Terminal className="w-3.5 h-3.5 text-accent-primary" />
+                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Mina CLI</span>
+              </a>
+
+              <a
+                href="https://github.com/SiphoYawe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
+              >
+                <Github className="w-3.5 h-3.5 text-text-muted group-hover:text-accent-primary transition-colors" />
+                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Sipho Yawe</span>
+              </a>
+            </div>
+
+            {/* Attribution */}
+            <p className="text-caption text-text-muted/60">
+              Powered by <span className="text-accent-primary/80">Mina</span>
+            </p>
+          </div>
         </motion.footer>
       </section>
 

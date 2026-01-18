@@ -19,14 +19,18 @@ const tabs: { id: TradeTab; label: string; description: string }[] = [
 
 export function TradeTabs({ activeTab, onTabChange, className }: TradeTabsProps) {
   return (
-    <div className={cn('flex gap-1 p-1 bg-bg-elevated rounded-lg', className)}>
+    // MOBILE-017 Fix: Added horizontal scroll and improved touch handling
+    <div className={cn('flex gap-1 p-1 bg-bg-elevated rounded-lg overflow-x-auto no-scrollbar', className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            'flex-1 px-4 py-2.5 rounded-md text-small font-medium transition-all duration-standard',
+            // MOBILE-017 Fix: Improved touch targets and added touch feedback
+            'flex-1 min-w-[100px] px-4 py-3 min-h-[44px] rounded-md text-small font-medium transition-all duration-standard',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
+            // Touch feedback
+            'active:scale-[0.98] active:brightness-95',
             activeTab === tab.id
               ? 'bg-bg-surface text-text-primary shadow-sm border border-border-subtle'
               : 'text-text-muted hover:text-text-secondary hover:bg-bg-surface/50'
