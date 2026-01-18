@@ -162,16 +162,27 @@ export function useChains() {
     }
   }, [isConnected, walletChainId, sourceChain, setNeedsNetworkSwitch]);
 
-  // Handle wallet chain change - update source chain if wallet switches
+  // Track previous wallet chain to detect actual wallet network switches
+  const prevWalletChainIdRef = useRef<number | undefined>(undefined);
+
+  // Handle wallet chain change - only update source chain if wallet ACTUALLY switches networks
+  // This should NOT override user's manual selection from the dropdown
   useEffect(() => {
     if (isConnected && walletChainId && chains.length > 0) {
-      const walletChain = chains.find((chain) => chain.id === walletChainId);
-      if (walletChain && sourceChain?.id !== walletChainId) {
-        // Wallet switched to a supported chain, update selection
-        setSourceChain(walletChain);
+      const prevChainId = prevWalletChainIdRef.current;
+      prevWalletChainIdRef.current = walletChainId;
+
+      // Only sync if wallet chain actually changed (not on initial mount or user dropdown selection)
+      if (prevChainId !== undefined && prevChainId !== walletChainId) {
+        const walletChain = chains.find((chain) => chain.id === walletChainId);
+        if (walletChain) {
+          // Wallet switched to a supported chain, update selection
+          console.log('[useChains] Wallet switched networks, updating source chain to', walletChain.name);
+          setSourceChain(walletChain);
+        }
       }
     }
-  }, [walletChainId, isConnected, chains, sourceChain, setSourceChain]);
+  }, [walletChainId, isConnected, chains, setSourceChain]);
 
   // Refresh chains - invalidates cache and refetches
   const refreshChains = useCallback(() => {
