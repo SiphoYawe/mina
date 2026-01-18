@@ -436,7 +436,7 @@ async function getRpcUrlForChain(chainId: number): Promise<string> {
     return cached;
   }
 
-  const url = `${LIFI_API_URL}/v1/chains`;
+  const url = `${LIFI_API_URL}/chains`;
   const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
@@ -526,7 +526,7 @@ async function fetchBalanceFromApi(
   console.log(`[Mina SDK] Fetching balance for ${address} on chain ${chainId}, token ${tokenAddress}`);
 
   // Fetch token metadata from LI.FI
-  const url = `${LIFI_API_URL}/v1/token?chain=${chainId}&token=${tokenAddress}`;
+  const url = `${LIFI_API_URL}/token?chain=${chainId}&token=${tokenAddress}`;
   const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
