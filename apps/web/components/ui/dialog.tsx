@@ -22,16 +22,32 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [open, onOpenChange]);
 
-  // Prevent body scroll when dialog is open
+  // MOBILE-007 Fix: Prevent body scroll when dialog is open with proper mobile handling
   React.useEffect(() => {
     if (open) {
+      // Store original overflow values
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const originalWidth = document.body.style.width;
+      const scrollY = window.scrollY;
+
+      // Lock body scroll - use position fixed approach for iOS
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+
+      return () => {
+        // Restore original values
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = originalWidth;
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [open]);
 
   if (!open) return null;
@@ -43,11 +59,11 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      {/* Full-screen scrollable container (Headless UI pattern) */}
+      {/* Full-screen scrollable container */}
       <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Centering container - min-h-full ensures centering when small, scrolls when large */}
+        {/* Centering container - uses dvh for mobile browser chrome, items-start + my-auto pattern */}
         <div
-          className="flex min-h-full justify-center p-4"
+          className="flex min-h-[100dvh] items-start justify-center px-4 py-8"
           onClick={(e) => {
             if (e.target === e.currentTarget) onOpenChange(false);
           }}
