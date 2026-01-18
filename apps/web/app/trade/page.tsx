@@ -20,10 +20,8 @@ export default function TradePage() {
         {/* Spotlight Effect */}
         <Spotlight />
 
-        {/* LAYOUT-001 Fix: Changed from fixed 320px sidebar to flexible layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr,320px] gap-6 lg:gap-8">
-          {/* Main Trading Panel */}
-          <div className="space-y-6">
+        {/* Main Trading Panel */}
+        <div className="space-y-6">
             {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -81,29 +79,14 @@ export default function TradePage() {
                 </div>
               ))}
             </motion.div>
-          </div>
-
-          {/* Sidebar - Positions */}
-          {/* LAYOUT-001 Fix: Show sidebar only on xl screens to prevent awkward gap */}
-          <motion.aside
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="hidden xl:block"
-          >
-            <div className="sticky top-8">
-              <PositionsSidebar />
-            </div>
-          </motion.aside>
         </div>
 
-        {/* Mobile/Tablet Positions (Collapsible) */}
-        {/* LAYOUT-001 Fix: Show on all screens below xl breakpoint */}
+        {/* Open Positions - Bottom */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="xl:hidden mt-8"
+          className="mt-8"
         >
           <PositionsSidebar />
         </motion.div>
