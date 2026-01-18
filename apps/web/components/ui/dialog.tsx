@@ -1,173 +1,172 @@
 'use client';
 
 import * as React from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface DialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  children: React.ReactNode;
-}
+const Dialog = DialogPrimitive.Root;
 
-const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
-  // Close on escape key
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
-        onOpenChange(false);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, onOpenChange]);
+const DialogTrigger = DialogPrimitive.Trigger;
 
-  // MOBILE-007 Fix: Prevent body scroll when dialog is open with proper mobile handling
-  React.useEffect(() => {
-    if (open) {
-      // Store original overflow values
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalTop = document.body.style.top;
-      const originalWidth = document.body.style.width;
-      const scrollY = window.scrollY;
+const DialogPortal = DialogPrimitive.Portal;
 
-      // Lock body scroll - use position fixed approach for iOS
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+const DialogClose = DialogPrimitive.Close;
 
-      return () => {
-        // Restore original values
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.top = originalTop;
-        document.body.style.width = originalWidth;
-        // Restore scroll position
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [open]);
+/**
+ * DialogOverlay - shadcn/Radix scrollable overlay pattern
+ *
+ * Uses CSS Grid with place-items-center for centering.
+ * overflow-y-auto allows scrolling when content is taller than viewport.
+ * Content is nested inside overlay (not as sibling) per Radix docs.
+ *
+ * @see https://www.radix-ui.com/docs/primitives/components/dialog#scrollable-overlay
+ * @see https://github.com/shadcn-ui/ui/issues/16
+ */
+const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      // Fixed fullscreen overlay
+      'fixed inset-0 z-50',
+      // Background styling
+      'bg-bg-base/80 backdrop-blur-sm',
+      // SCROLLABLE OVERLAY PATTERN: Grid centering + overflow scroll
+      'overflow-y-auto grid place-items-center',
+      // Padding for content spacing from edges
+      'p-4',
+      // Animations
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      className
+    )}
+    {...props}
+  />
+));
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-bg-base/80 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={() => onOpenChange(false)}
-      />
-      {/* Full-screen scrollable container */}
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Centering container - flex + min-h-full + justify-center, NO items-center */}
-        {/* Content uses my-auto for vertical centering (gracefully degrades when tall) */}
-        <div
-          className="flex min-h-full justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onOpenChange(false);
-          }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface DialogContentProps {
-  children: React.ReactNode;
-  className?: string;
-  onClose?: () => void;
-  showCloseButton?: boolean;
-}
-
-const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ children, className, onClose, showCloseButton = true }, ref) => {
-    return (
-      <div
+/**
+ * DialogContent - shadcn/Radix pattern
+ *
+ * Content is nested inside DialogOverlay for scrollable overlay pattern.
+ * Uses relative positioning (NOT fixed/absolute with transforms).
+ * Grid centering is handled by the parent overlay.
+ */
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    showCloseButton?: boolean;
+    onClose?: () => void;
+  }
+>(({ className, children, showCloseButton = true, onClose, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay>
+      <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          // Base styles
-          'relative w-full bg-bg-surface border border-border-default rounded-card shadow-lg my-auto mx-auto',
-          // Headless UI pattern: parent scrolls, content has max-width
-          'max-w-lg',
-          // Entrance animation
-          'animate-in fade-in zoom-in-95 duration-200',
+          // Relative positioning (grid parent handles centering)
+          'relative z-50',
+          // Sizing
+          'w-full max-w-lg',
+          // Visual styling
+          'bg-bg-surface border border-border-default rounded-card shadow-lg',
+          // Layout
+          'grid gap-4',
+          // Animations
+          'duration-200',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out',
+          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           className
         )}
-        onClick={(e) => e.stopPropagation()}
+        {...props}
       >
+        {children}
         {showCloseButton && onClose && (
           <button
             onClick={onClose}
-            // DIALOG-002 Fix: Proper z-index and positioning
-            className="absolute right-3 top-3 sm:right-4 sm:top-4 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors z-20"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
           </button>
         )}
-        {children}
-      </div>
-    );
-  }
+      </DialogPrimitive.Content>
+    </DialogOverlay>
+  </DialogPortal>
+));
+DialogContent.displayName = DialogPrimitive.Content.displayName;
+
+const DialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn('px-6 pt-6 pb-2', className)}
+    {...props}
+  />
 );
-DialogContent.displayName = 'DialogContent';
+DialogHeader.displayName = 'DialogHeader';
 
-interface DialogHeaderProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-const DialogHeader = ({ children, className }: DialogHeaderProps) => (
-  <div className={cn('px-6 pt-6 pb-2', className)}>{children}</div>
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      'px-6 pb-6 pt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-3',
+      className
+    )}
+    {...props}
+  />
 );
+DialogFooter.displayName = 'DialogFooter';
 
-interface DialogTitleProps {
-  children: React.ReactNode;
-  className?: string;
-}
+const DialogTitle = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn('text-h3 text-text-primary', className)}
+    {...props}
+  />
+));
+DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
-const DialogTitle = ({ children, className }: DialogTitleProps) => (
-  <h2 className={cn('text-h3 text-text-primary', className)}>{children}</h2>
+const DialogDescription = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn('text-body text-text-muted', className)}
+    {...props}
+  />
+));
+DialogDescription.displayName = DialogPrimitive.Description.displayName;
+
+const DialogBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn('px-6 py-4', className)} {...props} />
 );
-
-interface DialogDescriptionProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-const DialogDescription = ({ children, className }: DialogDescriptionProps) => (
-  <p className={cn('text-body text-text-muted mt-1', className)}>{children}</p>
-);
-
-interface DialogBodyProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-const DialogBody = ({ children, className }: DialogBodyProps) => (
-  <div className={cn('px-6 py-4', className)}>{children}</div>
-);
-
-interface DialogFooterProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-const DialogFooter = ({ children, className }: DialogFooterProps) => (
-  <div className={cn('px-6 pb-6 pt-2 flex justify-end gap-3', className)}>
-    {children}
-  </div>
-);
+DialogBody.displayName = 'DialogBody';
 
 export {
   Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogDescription,
   DialogBody,
-  DialogFooter,
 };
