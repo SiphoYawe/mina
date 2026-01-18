@@ -1,6 +1,6 @@
 {
   "name": "@siphoyawe/mina-cli",
-  "version": "1.2.5",
+  "version": "1.2.7",
   "description": "CLI tool for Mina Bridge - Bridge assets from any chain to Hyperliquid",
   "author": "Mina Bridge Contributors",
   "license": "MIT",
@@ -11,7 +11,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "mina-cli-logo.png"
   ],
   "engines": {
     "node": ">=18"
@@ -20,7 +22,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "prepublishOnly": "pnpm build && cp README.md README.github.md && cp README.npm.md README.md",
+    "postpublish": "cp README.github.md README.md && rm README.github.md"
   },
   "dependencies": {
     "@siphoyawe/mina-sdk": "workspace:*",

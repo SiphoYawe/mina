@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./mina-cli-logo.svg" alt="Mina CLI" width="400" />
+  <img src="https://raw.githubusercontent.com/SiphoYawe/mina/main/packages/cli/mina-cli-logo.png" alt="Mina CLI" width="400" />
 </p>
 
 <h1 align="center">@siphoyawe/mina-cli</h1>
