@@ -16,12 +16,12 @@ export default function TradePage() {
       <TradeHeader />
 
       {/* Main Content */}
-      <section className="relative z-10 container mx-auto px-4 py-8">
+      <section className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Spotlight Effect */}
         <Spotlight />
 
         {/* LAYOUT-001 Fix: Changed from fixed 320px sidebar to flexible layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr,360px] gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr,320px] gap-6 lg:gap-8">
           {/* Main Trading Panel */}
           <div className="space-y-6">
             {/* Title */}
