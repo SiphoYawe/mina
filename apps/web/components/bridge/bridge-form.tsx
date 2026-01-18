@@ -241,8 +241,17 @@ const ROUTE_TYPE_ICONS = {
  * Alternative routes display component (QUOTE-003)
  * Shows alternative routes with trade-offs when available
  * Enhanced design with better visual hierarchy and polish
+ * Now supports direct route selection
  */
-function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; className?: string }) {
+function AlternativeRoutesDisplay({
+  quote,
+  className,
+  onSelectRoute,
+}: {
+  quote: Quote;
+  className?: string;
+  onSelectRoute?: (routeType: 'recommended' | 'fastest' | 'cheapest') => void;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Filter to only show routes that are different from the currently selected route
@@ -342,16 +351,21 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
               const isSuccess = route.type === 'fastest';
               const isAccent = route.type === 'cheapest';
               const isWarning = route.type === 'recommended';
+              const canSelect = !!onSelectRoute;
 
               return (
-                <div
+                <button
                   key={route.routeId}
+                  onClick={() => onSelectRoute?.(route.type as 'recommended' | 'fastest' | 'cheapest')}
+                  disabled={!canSelect}
                   className={cn(
-                    'flex items-center justify-between p-3 rounded-lg',
+                    'w-full flex items-center justify-between p-3 rounded-lg',
                     'bg-bg-surface/50 hover:bg-bg-surface/70',
-                    'border border-border-subtle/50 hover:border-border-default/50',
+                    'border border-border-subtle/50',
                     'transition-all duration-150',
-                    'group/route cursor-default'
+                    'group/route',
+                    canSelect && 'cursor-pointer hover:border-accent-primary/30 hover:shadow-[0_0_15px_rgba(125,211,252,0.1)] active:scale-[0.99]',
+                    !canSelect && 'cursor-default'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -369,14 +383,21 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
                         isWarning && 'text-warning'
                       )} />
                     </div>
-                    <span className={cn(
-                      'text-small font-semibold capitalize',
-                      isSuccess && 'text-success',
-                      isAccent && 'text-accent-primary',
-                      isWarning && 'text-warning'
-                    )}>
-                      {route.type}
-                    </span>
+                    <div className="flex flex-col items-start">
+                      <span className={cn(
+                        'text-small font-semibold capitalize',
+                        isSuccess && 'text-success',
+                        isAccent && 'text-accent-primary',
+                        isWarning && 'text-warning'
+                      )}>
+                        {route.type}
+                      </span>
+                      {canSelect && (
+                        <span className="text-[10px] text-text-muted group-hover/route:text-accent-primary transition-colors">
+                          Click to use
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5 text-text-muted">
@@ -388,7 +409,7 @@ function AlternativeRoutesDisplay({ quote, className }: { quote: Quote; classNam
                       <span className="text-small tabular-nums">${parseFloat(route.totalFees).toFixed(2)}</span>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -430,6 +451,15 @@ export function BridgeForm() {
   // Auto-deposit from persisted settings store
   const autoDepositEnabled = useSettingsStore((state) => state.autoDeposit);
   const setAutoDeposit = useSettingsStore((state) => state.setAutoDeposit);
+
+  // Route preference from settings store
+  const routePreference = useSettingsStore((state) => state.routePreference);
+  const setRoutePreference = useSettingsStore((state) => state.setRoutePreference);
+
+  // Handle route preference change (triggers quote refetch)
+  const handleRoutePreferenceChange = useCallback((preference: 'recommended' | 'fastest' | 'cheapest') => {
+    setRoutePreference(preference);
+  }, [setRoutePreference]);
 
   // Issue 2 fix: Use useShallow for state to batch subscriptions
   // Actions are stable references and can be selected directly - no need for getState()
@@ -1012,6 +1042,8 @@ export function BridgeForm() {
                 quote={quote}
                 isLoading={isQuoteLoading}
                 error={quoteError}
+                routePreference={routePreference}
+                onRoutePreferenceChange={handleRoutePreferenceChange}
               />
             </div>
           </div>
@@ -1023,6 +1055,8 @@ export function BridgeForm() {
             quote={quote}
             isLoading={isQuoteLoading}
             error={quoteError}
+            routePreference={routePreference}
+            onRoutePreferenceChange={handleRoutePreferenceChange}
           />
         </div>
 
@@ -1030,7 +1064,7 @@ export function BridgeForm() {
         {quote && <ExchangeRateDisplay quote={quote} className="mt-2" />}
 
         {/* QUOTE-003: Alternative Routes Display */}
-        {quote && <AlternativeRoutesDisplay quote={quote} />}
+        {quote && <AlternativeRoutesDisplay quote={quote} onSelectRoute={handleRoutePreferenceChange} />}
 
         {/* Balance Warnings - Only shown in Bridge mode */}
         {!isSimulateMode && quote && warnings.length > 0 && (
@@ -1052,45 +1086,75 @@ export function BridgeForm() {
           message={getTooltipMessage()}
         >
           <Button
-            className="w-full hover:shadow-glow"
+            className={cn(
+              "w-full relative overflow-hidden group",
+              quote && !hasBalanceIssue && !isQuoteLoading && "bg-gradient-to-r from-accent-primary to-success hover:from-accent-primary/90 hover:to-success/90 shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30"
+            )}
             size="lg"
             disabled={isBridgeDisabled}
             onClick={isSimulateMode ? () => openWalletModal() : handleBridge}
           >
-            {isSimulateMode
-              ? !sourceChain
-                ? 'Select Chain'
-                : !sourceToken
-                ? 'Select Token'
+            {/* Shimmer effect on ready state */}
+            {quote && !hasBalanceIssue && !isQuoteLoading && !isExecuting && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            )}
+
+            <span className="relative flex items-center justify-center gap-2">
+              {isSimulateMode
+                ? !sourceChain
+                  ? 'Select a Network'
+                  : !sourceToken
+                  ? 'Select a Token'
+                  : !amount
+                  ? 'Enter Amount'
+                  : isQuoteLoading
+                  ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Calculating Route...
+                    </>
+                  )
+                  : 'Connect Wallet to Bridge'
+                : !isConnected
+                ? 'Connect Wallet'
+                : isExecuting
+                ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Bridging to HyperEVM...
+                  </>
+                )
+                : isSwitchPending
+                ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Switching Network...
+                  </>
+                )
+                : needsSwitch
+                ? `Switch to ${sourceChain?.name || 'Network'}`
+                : !sourceChain
+                ? 'Select a Network'
                 : !amount
                 ? 'Enter Amount'
                 : isQuoteLoading
-                ? 'Getting Quote...'
-                : 'Connect to Bridge'
-              : !isConnected
-              ? 'Connect Wallet'
-              : isExecuting
-              ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Bridging...
-                </>
-              )
-              : isSwitchPending
-              ? 'Switching Network...'
-              : needsSwitch
-              ? 'Switch Network First'
-              : !sourceChain
-              ? 'Select Chain'
-              : !amount
-              ? 'Enter Amount'
-              : isQuoteLoading
-              ? 'Getting Quote...'
-              : !quote
-              ? 'Get Quote'
-              : hasBalanceIssue
-              ? 'Insufficient Balance'
-              : 'Bridge Now'}
+                ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Calculating Route...
+                  </>
+                )
+                : !quote
+                ? 'Enter Details Above'
+                : hasBalanceIssue
+                ? 'Insufficient Balance'
+                : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    Bridge to HyperEVM
+                  </>
+                )}
+            </span>
           </Button>
         </BridgeButtonTooltip>
 

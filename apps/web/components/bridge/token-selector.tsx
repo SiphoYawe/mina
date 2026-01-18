@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, ChevronDown, X, Loader2 } from 'lucide-react';
+import { Search, ChevronDown, X, Loader2, Coins } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { Token } from '@siphoyawe/mina-sdk';
 import { cn } from '@/lib/utils';
 
@@ -95,24 +96,68 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 }
 
 /**
- * Loading skeleton for token rows
+ * Loading skeleton for token rows with shimmer effect
  */
-function TokenSkeleton() {
+function TokenSkeleton({ delay = 0 }: { delay?: number }) {
   return (
-    <div className="w-full flex items-center gap-3 px-3 py-3 rounded-lg animate-pulse">
-      {/* Token icon skeleton */}
-      <div className="w-8 h-8 rounded-full bg-bg-elevated flex-shrink-0" />
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay * 0.05, duration: 0.3 }}
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-lg"
+    >
+      {/* Token icon skeleton with shimmer */}
+      <div className="relative w-8 h-8 rounded-full bg-bg-elevated flex-shrink-0 overflow-hidden">
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      </div>
 
       {/* Token name/symbol skeleton */}
       <div className="flex-1 min-w-0">
-        <div className="h-4 w-16 bg-bg-elevated rounded mb-1.5" />
-        <div className="h-3 w-24 bg-bg-elevated rounded" />
+        <div className="relative h-4 w-16 bg-bg-elevated rounded mb-1.5 overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+        <div className="relative h-3 w-24 bg-bg-elevated rounded overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite_0.1s] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
       </div>
 
       {/* Balance skeleton */}
       <div className="flex flex-col items-end flex-shrink-0">
-        <div className="h-4 w-12 bg-bg-elevated rounded mb-1" />
-        <div className="h-3 w-10 bg-bg-elevated rounded" />
+        <div className="relative h-4 w-12 bg-bg-elevated rounded mb-1 overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite_0.2s] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+        <div className="relative h-3 w-10 bg-bg-elevated rounded overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite_0.3s] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/**
+ * Loading state component for token selector dropdown
+ */
+function TokenLoadingState() {
+  return (
+    <div className="py-4">
+      {/* Loading header */}
+      <div className="flex flex-col items-center justify-center px-4 pb-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full bg-accent-primary/10 flex items-center justify-center">
+            <Coins className="w-6 h-6 text-accent-primary animate-pulse" />
+          </div>
+          {/* Spinning ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-accent-primary/20 border-t-accent-primary animate-spin" />
+        </div>
+        <p className="mt-3 text-small text-text-secondary font-medium">Loading tokens...</p>
+        <p className="text-caption text-text-muted">This may take a moment</p>
+      </div>
+
+      {/* Skeleton rows */}
+      <div className="space-y-1 border-t border-border-subtle pt-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <TokenSkeleton key={i} delay={i} />
+        ))}
       </div>
     </div>
   );
@@ -345,7 +390,7 @@ export function TokenSelector({
       <button
         type="button"
         onClick={toggleDropdown}
-        disabled={disabled || isLoading}
+        disabled={disabled}
         aria-label="Select token"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -355,29 +400,53 @@ export function TokenSelector({
           isOpen
             ? 'border-accent-primary ring-2 ring-accent-primary/20'
             : 'border-border-default hover:border-border-subtle',
-          (disabled || isLoading) && 'opacity-50 cursor-not-allowed',
+          disabled && 'opacity-50 cursor-not-allowed',
           error && 'border-error'
         )}
       >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
-            <span className="text-small text-text-muted">Loading...</span>
-          </>
-        ) : value ? (
-          <>
-            <TokenIcon token={value} size="sm" />
-            <span className="text-small text-text-primary font-medium">
-              {value.symbol}
-            </span>
-          </>
-        ) : (
-          <span className="text-small text-text-muted">{placeholder}</span>
-        )}
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2"
+            >
+              <div className="relative w-5 h-5">
+                <div className="absolute inset-0 rounded-full border-2 border-accent-primary/20 border-t-accent-primary animate-spin" />
+              </div>
+              <span className="text-small text-accent-primary font-medium">Loading...</span>
+            </motion.div>
+          ) : value ? (
+            <motion.div
+              key="value"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex items-center gap-2"
+            >
+              <TokenIcon token={value} size="sm" />
+              <span className="text-small text-text-primary font-medium">
+                {value.symbol}
+              </span>
+            </motion.div>
+          ) : (
+            <motion.span
+              key="placeholder"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-small text-text-muted"
+            >
+              {placeholder}
+            </motion.span>
+          )}
+        </AnimatePresence>
 
         <ChevronDown
           className={cn(
-            'w-4 h-4 text-text-muted transition-transform duration-standard flex-shrink-0',
+            'w-4 h-4 text-text-muted transition-transform duration-standard flex-shrink-0 ml-auto',
             isOpen && 'rotate-180'
           )}
         />
@@ -423,14 +492,8 @@ export function TokenSelector({
           {/* Token List - MOBILE-011 Fix: Better scroll handling for mobile */}
           <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto overscroll-contain p-2 -webkit-overflow-scrolling-touch" role="listbox" aria-label="Available tokens">
             {isLoading ? (
-              /* Loading skeleton state */
-              <div className="space-y-1">
-                <TokenSkeleton />
-                <TokenSkeleton />
-                <TokenSkeleton />
-                <TokenSkeleton />
-                <TokenSkeleton />
-              </div>
+              /* Enhanced loading state */
+              <TokenLoadingState />
             ) : sortedAndFilteredTokens.length === 0 ? (
               <div className="px-3 py-8 text-center">
                 <p className="text-body text-text-muted">No tokens found</p>

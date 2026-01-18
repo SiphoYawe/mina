@@ -213,6 +213,32 @@
   .animate-success-glow {
     animation: success-glow 2s ease-in-out infinite;
   }
+
+  /* Shimmer loading animation */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Quote calculation pulse animation */
+  @keyframes quote-pulse {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-quote-pulse {
+    animation: quote-pulse 1.5s ease-in-out infinite;
+  }
 }
 
 /* Confetti Canvas - ensure it doesn't block interactions */

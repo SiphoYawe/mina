@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { motion } from 'motion/react';
 import {
   Clock,
   Layers,
@@ -11,6 +12,8 @@ import {
   Sparkles,
   Info,
   WifiOff,
+  Calculator,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/lib/hooks/use-online-status';
@@ -23,6 +26,10 @@ interface QuoteDisplayProps {
   isLoading: boolean;
   /** Error message if quote fetch failed */
   error: Error | null;
+  /** Current route preference */
+  routePreference?: 'recommended' | 'fastest' | 'cheapest';
+  /** Callback when route preference changes */
+  onRoutePreferenceChange?: (preference: 'recommended' | 'fastest' | 'cheapest') => void;
   /** Additional class names */
   className?: string;
 }
@@ -78,32 +85,88 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * Skeleton loader for quote display
+ * Enhanced quote calculation loading state
+ * Shows animated progress with meaningful visual feedback
  */
-function QuoteSkeleton() {
+function QuoteLoadingState() {
   return (
-    <div className="animate-pulse space-y-4 mb-6">
-      {/* Output amount skeleton */}
-      <div className="p-4 rounded-xl bg-bg-elevated/50 border border-border-subtle">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-3 w-20 bg-border-subtle rounded" />
-            <div className="h-7 w-32 bg-border-default rounded" />
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative mb-6"
+    >
+      {/* Main loading card */}
+      <div className="relative overflow-hidden rounded-xl border-2 border-accent-primary/30 bg-gradient-to-br from-bg-elevated/80 via-bg-surface/60 to-bg-elevated/80 p-6">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/0 via-accent-primary/5 to-accent-primary/0 animate-[shimmer_2s_ease-in-out_infinite]" />
+
+        {/* Content */}
+        <div className="relative flex flex-col items-center justify-center py-4">
+          {/* Animated calculator icon */}
+          <div className="relative mb-4">
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-muted/20 flex items-center justify-center shadow-lg shadow-accent-primary/10"
+            >
+              <Calculator className="w-8 h-8 text-accent-primary" />
+            </motion.div>
+
+            {/* Orbiting dots */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0"
+            >
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-accent-primary" />
+            </motion.div>
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0"
+            >
+              <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-accent-muted" />
+            </motion.div>
           </div>
-          <div className="h-8 w-8 bg-border-subtle rounded-full" />
+
+          {/* Status text */}
+          <div className="text-center space-y-1.5">
+            <p className="text-body font-semibold text-text-primary">Calculating best route</p>
+            <p className="text-small text-text-muted">Finding optimal fees and execution</p>
+          </div>
+
+          {/* Progress steps */}
+          <div className="flex items-center gap-2 mt-5">
+            {['Analyzing', 'Routing', 'Optimizing'].map((step, i) => (
+              <motion.div
+                key={step}
+                initial={{ opacity: 0.3 }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: i * 0.3,
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-bg-surface/80 border border-border-subtle"
+              >
+                <Zap className="w-3 h-3 text-accent-primary" />
+                <span className="text-caption text-text-secondary">{step}</span>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Stats row skeleton */}
-      <div className="flex items-center justify-between px-2">
-        <div className="h-4 w-16 bg-border-subtle rounded" />
-        <div className="h-4 w-12 bg-border-subtle rounded" />
-        <div className="h-4 w-14 bg-border-subtle rounded" />
+        {/* Bottom shimmer line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-accent-primary/50 to-transparent animate-[shimmer_1.5s_ease-in-out_infinite]" />
       </div>
-
-      {/* Fee breakdown trigger skeleton */}
-      <div className="h-10 w-full bg-border-subtle/50 rounded-lg" />
-    </div>
+    </motion.div>
   );
 }
 
@@ -184,6 +247,52 @@ function TokenBadge({ token }: { token: Token }) {
         <div className="absolute inset-0 rounded-full bg-accent-primary/20 blur-sm -z-10" />
       </div>
       <span className="text-body font-semibold text-text-primary">{token.symbol}</span>
+    </div>
+  );
+}
+
+/**
+ * Inline route preference selector
+ * Allows quick switching between recommended, fastest, and cheapest routes
+ */
+function RoutePreferenceSelector({
+  value,
+  onChange,
+  isLoading,
+}: {
+  value: 'recommended' | 'fastest' | 'cheapest';
+  onChange: (preference: 'recommended' | 'fastest' | 'cheapest') => void;
+  isLoading?: boolean;
+}) {
+  const options = [
+    { value: 'recommended' as const, label: 'Best', icon: Sparkles },
+    { value: 'fastest' as const, label: 'Fast', icon: Zap },
+    { value: 'cheapest' as const, label: 'Cheap', icon: Fuel },
+  ];
+
+  return (
+    <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-surface/60 border border-border-subtle/50">
+      {options.map((option) => {
+        const Icon = option.icon;
+        const isSelected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            disabled={isLoading}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium transition-all",
+              isSelected
+                ? "bg-accent-primary/20 text-accent-primary shadow-sm"
+                : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50",
+              isLoading && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span>{option.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -334,6 +443,8 @@ export function QuoteDisplay({
   quote,
   isLoading,
   error,
+  routePreference = 'recommended',
+  onRoutePreferenceChange,
   className,
 }: QuoteDisplayProps) {
   const isOnline = useOnlineStatus();
@@ -348,11 +459,11 @@ export function QuoteDisplay({
     return null;
   }
 
-  // Show skeleton while loading
+  // Show enhanced loading state while calculating
   if (isLoading && !quote) {
     return (
       <div className={cn('space-y-4', className)}>
-        <QuoteSkeleton />
+        <QuoteLoadingState />
       </div>
     );
   }
@@ -427,6 +538,17 @@ export function QuoteDisplay({
           </div>
         </div>
       </div>
+
+      {/* Route preference selector - Quick switch between routes */}
+      {onRoutePreferenceChange && (
+        <div className="flex items-center justify-center">
+          <RoutePreferenceSelector
+            value={routePreference}
+            onChange={onRoutePreferenceChange}
+            isLoading={isLoading}
+          />
+        </div>
+      )}
 
       {/* Quick stats row - Premium pill badges */}
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
