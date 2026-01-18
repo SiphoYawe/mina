@@ -61,9 +61,10 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
       />
       {/* Full-screen scrollable container */}
       <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Centering container - uses dvh for mobile browser chrome, items-start + my-auto pattern */}
+        {/* Centering container - flex + min-h-full + justify-center, NO items-center */}
+        {/* Content uses my-auto for vertical centering (gracefully degrades when tall) */}
         <div
-          className="flex min-h-[100dvh] items-start justify-center px-4 py-8"
+          className="flex min-h-full justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) onOpenChange(false);
           }}
