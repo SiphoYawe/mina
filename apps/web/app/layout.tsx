@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { MinaProvider } from './providers';
 import { ServiceWorkerRegistration, InstallBanner } from '@/components/shared';
+import { ToastContainer } from '@/components/ui/toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -62,6 +63,7 @@ export default function RootLayout({
           {children}
           <InstallBanner />
           <ServiceWorkerRegistration />
+          <ToastContainer />
         </MinaProvider>
       </body>
     </html>

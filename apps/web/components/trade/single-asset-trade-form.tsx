@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Loader2, Coins } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useToast } from '@/components/ui/toast';
 import { useSingleAssetTrade, usePearAuth } from '@/lib/pear';
 import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
@@ -20,12 +22,14 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
   const { executeSingleTrade, isLoading: isTrading } = useSingleAssetTrade();
   const bridgeMode = useBridgeMode();
   const isSimulateMode = bridgeMode === 'simulate';
+  const toast = useToast();
 
   // Form state
   const [asset, setAsset] = useState('BTC');
   const [direction, setDirection] = useState<'long' | 'short'>('long');
   const [usdValue, setUsdValue] = useState('');
   const [leverage, setLeverage] = useState(1);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Stop Loss / Take Profit
   const [enableSL, setEnableSL] = useState(false);
@@ -33,8 +37,26 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
   const [slPercent, setSlPercent] = useState('5');
   const [tpPercent, setTpPercent] = useState('10');
 
-  const handleTrade = async () => {
-    if (!usdValue || isNaN(Number(usdValue))) return;
+  const handleTradeClick = () => {
+    if (!usdValue || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
+      toast.error('Invalid amount', 'Please enter a valid USD amount');
+      return;
+    }
+    if (isSimulateMode) {
+      toast.success(
+        'Simulation executed',
+        `${direction === 'long' ? 'Long' : 'Short'} ${asset} simulated with $${usdValue} at ${leverage}x leverage`
+      );
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmTrade = useCallback(async () => {
+    const toastId = toast.loading(
+      'Opening position...',
+      `${direction === 'long' ? 'Long' : 'Short'} ${asset} with $${usdValue}`
+    );
 
     try {
       await executeSingleTrade({
@@ -45,10 +67,25 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
         stopLoss: enableSL ? { type: 'PERCENTAGE', value: Number(slPercent) } : undefined,
         takeProfit: enableTP ? { type: 'PERCENTAGE', value: Number(tpPercent) } : undefined,
       });
+      toast.update(toastId, {
+        type: 'success',
+        title: 'Position opened!',
+        description: `Successfully ${direction === 'long' ? 'longed' : 'shorted'} ${asset} with $${usdValue} at ${leverage}x`,
+      });
+      // Reset form
+      setUsdValue('');
+      setLeverage(1);
     } catch (error) {
-      console.error('Trade failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.update(toastId, {
+        type: 'error',
+        title: 'Trade failed',
+        description: errorMessage,
+      });
+    } finally {
+      setShowConfirmDialog(false);
     }
-  };
+  }, [executeSingleTrade, asset, direction, usdValue, leverage, enableSL, enableTP, slPercent, tpPercent, toast]);
 
   // In simulation mode, bypass authentication requirement
   if (!isAuthenticated && !isSimulateMode) {
@@ -228,7 +265,7 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
           <Button
             className={cn('w-full', direction === 'long' ? '' : 'bg-error hover:bg-error/90')}
             size="lg"
-            onClick={isSimulateMode ? undefined : handleTrade}
+            onClick={handleTradeClick}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
@@ -263,6 +300,27 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
           </p>
         </div>
       </CardContent>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={handleConfirmTrade}
+        title={`Confirm ${direction === 'long' ? 'Long' : 'Short'} Position`}
+        description={`You are about to ${direction === 'long' ? 'long' : 'short'} ${asset}.`}
+        confirmText={direction === 'long' ? 'Go Long' : 'Go Short'}
+        cancelText="Cancel"
+        variant={direction === 'long' ? 'success' : 'danger'}
+        isLoading={isTrading}
+        details={[
+          { label: 'Asset', value: asset },
+          { label: 'Direction', value: direction === 'long' ? 'Long' : 'Short' },
+          { label: 'Size', value: `$${Number(usdValue).toLocaleString()}` },
+          { label: 'Leverage', value: `${leverage}x` },
+          ...(enableSL ? [{ label: 'Stop Loss', value: `${slPercent}%` }] : []),
+          ...(enableTP ? [{ label: 'Take Profit', value: `${tpPercent}%` }] : []),
+        ]}
+      />
     </Card>
   );
 }

@@ -4,10 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ConnectButton } from '@/components/wallet/connect-button';
 import { BridgeForm, RecentTransactions } from '@/components/bridge';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { AlertCircle, RefreshCw, Terminal, Package, Github } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spotlight } from '@/components/ui/spotlight';
 import { motion } from 'motion/react';
+import { Footer } from '@/components/shared/footer';
 
 /**
  * Issue 7 fix: Fallback UI for BridgeForm error boundary
@@ -97,56 +98,7 @@ export default function Home() {
         </motion.div>
 
         {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-16 pb-8"
-        >
-          {/* Separator */}
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-border-default/50 to-transparent mb-8" />
-
-          {/* Footer Content */}
-          <div className="flex flex-col items-center gap-6">
-            {/* Links Row */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="https://www.npmjs.com/package/@siphoyawe/mina-sdk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <Package className="w-3.5 h-3.5 text-accent-primary" />
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Mina SDK</span>
-              </a>
-
-              <a
-                href="https://www.npmjs.com/package/@siphoyawe/mina-cli"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <Terminal className="w-3.5 h-3.5 text-accent-primary" />
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Mina CLI</span>
-              </a>
-
-              <a
-                href="https://github.com/SiphoYawe"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <Github className="w-3.5 h-3.5 text-text-muted group-hover:text-accent-primary transition-colors" />
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Sipho Yawe</span>
-              </a>
-            </div>
-
-            {/* Attribution */}
-            <p className="text-caption text-text-muted/60">
-              Powered by <span className="text-accent-primary/80">Mina</span>
-            </p>
-          </div>
-        </motion.footer>
+        <Footer />
       </section>
 
     </main>

@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ArrowLeftRight, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useToast } from '@/components/ui/toast';
 import { usePearMarkets, usePairTrade, usePearAuth } from '@/lib/pear';
 import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
@@ -19,12 +21,14 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
   const { executePairTrade, isLoading: isTrading } = usePairTrade();
   const bridgeMode = useBridgeMode();
   const isSimulateMode = bridgeMode === 'simulate';
+  const toast = useToast();
 
   // Form state
   const [longAsset, setLongAsset] = useState('BTC');
   const [shortAsset, setShortAsset] = useState('ETH');
   const [usdValue, setUsdValue] = useState('');
   const [leverage, setLeverage] = useState(1);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Popular pairs for quick selection
   const popularPairs = [
@@ -34,8 +38,24 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
     { long: 'DOGE', short: 'SHIB', label: 'DOGE/SHIB' },
   ];
 
-  const handleTrade = async () => {
-    if (!usdValue || isNaN(Number(usdValue))) return;
+  const handleTradeClick = () => {
+    if (!usdValue || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
+      toast.error('Invalid amount', 'Please enter a valid USD amount');
+      return;
+    }
+    if (isSimulateMode) {
+      // In simulation mode, show success toast immediately
+      toast.success(
+        'Simulation executed',
+        `${longAsset}/${shortAsset} pair trade simulated with $${usdValue} at ${leverage}x leverage`
+      );
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmTrade = useCallback(async () => {
+    const toastId = toast.loading('Executing trade...', `Opening ${longAsset}/${shortAsset} position`);
 
     try {
       await executePairTrade({
@@ -44,10 +64,25 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
         usdValue: Number(usdValue),
         leverage,
       });
+      toast.update(toastId, {
+        type: 'success',
+        title: 'Trade executed!',
+        description: `Successfully opened ${longAsset}/${shortAsset} position with $${usdValue} at ${leverage}x`,
+      });
+      // Reset form
+      setUsdValue('');
+      setLeverage(1);
     } catch (error) {
-      console.error('Trade failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.update(toastId, {
+        type: 'error',
+        title: 'Trade failed',
+        description: errorMessage,
+      });
+    } finally {
+      setShowConfirmDialog(false);
     }
-  };
+  }, [executePairTrade, longAsset, shortAsset, usdValue, leverage, toast]);
 
   // In simulation mode, bypass authentication requirement
   if (!isAuthenticated && !isSimulateMode) {
@@ -209,7 +244,7 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
           <Button
             className="w-full"
             size="lg"
-            onClick={isSimulateMode ? undefined : handleTrade}
+            onClick={handleTradeClick}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
@@ -237,6 +272,25 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
           </p>
         </div>
       </CardContent>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={handleConfirmTrade}
+        title="Confirm Pair Trade"
+        description={`You are about to open a ${longAsset}/${shortAsset} pair position.`}
+        confirmText="Execute Trade"
+        cancelText="Cancel"
+        variant="default"
+        isLoading={isTrading}
+        details={[
+          { label: 'Long', value: longAsset },
+          { label: 'Short', value: shortAsset },
+          { label: 'Size', value: `$${Number(usdValue).toLocaleString()}` },
+          { label: 'Leverage', value: `${leverage}x` },
+        ]}
+      />
     </Card>
   );
 }

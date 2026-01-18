@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, Minus, TrendingUp, TrendingDown, Loader2, Package } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useToast } from '@/components/ui/toast';
 import { useBasketTrade, usePearAuth } from '@/lib/pear';
 import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
@@ -25,6 +27,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
   const { executeBasketTrade, isLoading: isTrading } = useBasketTrade();
   const bridgeMode = useBridgeMode();
   const isSimulateMode = bridgeMode === 'simulate';
+  const toast = useToast();
 
   // Form state
   const [longAssets, setLongAssets] = useState<AssetWeight[]>([
@@ -36,6 +39,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
   ]);
   const [usdValue, setUsdValue] = useState('');
   const [leverage, setLeverage] = useState(1);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Add asset to basket
   const addAsset = (side: 'long' | 'short') => {
@@ -82,8 +86,27 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
     }
   };
 
-  const handleTrade = async () => {
-    if (!usdValue || isNaN(Number(usdValue))) return;
+  const handleTradeClick = () => {
+    if (!usdValue || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
+      toast.error('Invalid amount', 'Please enter a valid USD amount');
+      return;
+    }
+    if (isSimulateMode) {
+      const longStr = longAssets.map(a => a.asset).join(', ');
+      const shortStr = shortAssets.map(a => a.asset).join(', ');
+      toast.success(
+        'Simulation executed',
+        `Basket trade simulated: Long [${longStr}] / Short [${shortStr}] with $${usdValue} at ${leverage}x`
+      );
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmTrade = useCallback(async () => {
+    const longStr = longAssets.map(a => a.asset).join(', ');
+    const shortStr = shortAssets.map(a => a.asset).join(', ');
+    const toastId = toast.loading('Executing basket trade...', `Opening position: Long [${longStr}]`);
 
     try {
       await executeBasketTrade({
@@ -92,10 +115,25 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
         usdValue: Number(usdValue),
         leverage,
       });
+      toast.update(toastId, {
+        type: 'success',
+        title: 'Basket trade executed!',
+        description: `Successfully opened basket position with $${usdValue} at ${leverage}x`,
+      });
+      // Reset form
+      setUsdValue('');
+      setLeverage(1);
     } catch (error) {
-      console.error('Trade failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.update(toastId, {
+        type: 'error',
+        title: 'Trade failed',
+        description: errorMessage,
+      });
+    } finally {
+      setShowConfirmDialog(false);
     }
-  };
+  }, [executeBasketTrade, longAssets, shortAssets, usdValue, leverage, toast]);
 
   // In simulation mode, bypass authentication requirement
   if (!isAuthenticated && !isSimulateMode) {
@@ -229,7 +267,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
           <Button
             className="w-full"
             size="lg"
-            onClick={isSimulateMode ? undefined : handleTrade}
+            onClick={handleTradeClick}
             disabled={isTrading || !usdValue || Number(usdValue) <= 0}
           >
             {isTrading ? (
@@ -262,6 +300,25 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
           </div>
         </div>
       </CardContent>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={handleConfirmTrade}
+        title="Confirm Basket Trade"
+        description="You are about to open a basket position with multiple assets."
+        confirmText="Execute Trade"
+        cancelText="Cancel"
+        variant="default"
+        isLoading={isTrading}
+        details={[
+          { label: 'Long', value: longAssets.map(a => a.asset).join(', ') },
+          { label: 'Short', value: shortAssets.map(a => a.asset).join(', ') },
+          { label: 'Size', value: `$${Number(usdValue).toLocaleString()}` },
+          { label: 'Leverage', value: `${leverage}x` },
+        ]}
+      />
     </Card>
   );
 }

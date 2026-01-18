@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Terminal, Package, ExternalLink } from 'lucide-react';
 import { TradeHeader, TradeTabs, PairTradeForm, BasketTradeForm, SingleAssetTradeForm, PositionsSidebar, type TradeTab } from '@/components/trade';
 import { Spotlight } from '@/components/ui/spotlight';
+import { Footer } from '@/components/shared/footer';
 
 export default function TradePage() {
   const [activeTab, setActiveTab] = useState<TradeTab>('pair');
@@ -109,56 +109,7 @@ export default function TradePage() {
         </motion.div>
 
         {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-16 pb-8"
-        >
-          {/* Separator */}
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-border-default/50 to-transparent mb-8" />
-
-          {/* Footer Content */}
-          <div className="flex flex-col items-center gap-6">
-            {/* Links Row */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="https://pearprotocol.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Pear Protocol</span>
-                <ExternalLink className="w-3 h-3 text-text-muted group-hover:text-accent-primary transition-colors" />
-              </a>
-
-              <a
-                href="https://hyperliquid.xyz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Hyperliquid</span>
-                <ExternalLink className="w-3 h-3 text-text-muted group-hover:text-accent-primary transition-colors" />
-              </a>
-
-              <a
-                href="https://www.npmjs.com/package/@siphoyawe/mina-cli"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/60 border border-border-subtle hover:border-accent-primary/40 hover:bg-bg-elevated/80 transition-all duration-200"
-              >
-                <Terminal className="w-3.5 h-3.5 text-accent-primary" />
-                <span className="text-caption text-text-muted group-hover:text-text-primary transition-colors">Mina CLI</span>
-              </a>
-            </div>
-
-            {/* Attribution */}
-            <p className="text-caption text-text-muted/60">
-              Powered by <span className="text-accent-primary/80">Mina</span>
-            </p>
-          </div>
-        </motion.footer>
+        <Footer showPearProtocol showHyperliquid />
       </section>
     </main>
   );

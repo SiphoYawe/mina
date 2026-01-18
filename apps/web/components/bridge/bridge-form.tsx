@@ -24,6 +24,7 @@ import { useSettingsStore } from '@/lib/stores/settings-store';
 import { useTransactionStore } from '@/lib/stores/transaction-store';
 import { useMina } from '@/app/providers';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/toast';
 import type { Chain, Token, Quote } from '@siphoyawe/mina-sdk';
 
 /**
@@ -68,7 +69,7 @@ function DestinationChainDisplay() {
 }
 
 /**
- * Animated Bridge Arrow/Portal
+ * Bridge Arrow/Portal
  * Visual centerpiece that conveys the bridging action
  */
 function BridgePortal({ className }: { className?: string }) {
@@ -86,10 +87,6 @@ function BridgePortal({ className }: { className?: string }) {
         {/* Arrow icon */}
         <ArrowDown className="relative w-6 h-6 md:hidden text-accent-primary drop-shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
         <ArrowRight className="relative hidden md:block w-7 h-7 text-accent-primary drop-shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
-
-        {/* Animated particles (decorative dots) */}
-        <div className="absolute -left-1 top-1/2 w-1.5 h-1.5 rounded-full bg-accent-primary animate-[bridge-particle_2s_ease-in-out_infinite]" />
-        <div className="absolute -left-2 top-1/2 w-1 h-1 rounded-full bg-accent-primary/60 animate-[bridge-particle_2s_ease-in-out_infinite_0.3s]" />
       </div>
     </div>
   );
@@ -425,6 +422,7 @@ export function BridgeForm() {
   const { warnings, isValid: isBalanceValid } = useBalanceValidation({ quote });
   const { execute, retry, isExecuting, isRetrying, reset: resetExecution, steps: executionSteps } = useBridgeExecution();
   const { addTransaction, updateTransaction } = useTransactionHistory();
+  const toast = useToast();
 
   // State for managing dismissed prompt
   const [isDismissed, setIsDismissed] = useState(false);
@@ -774,6 +772,25 @@ export function BridgeForm() {
     router.push('/trade');
   }, [router]);
 
+  // Handle refresh chains with toast feedback
+  const handleRefreshChains = useCallback(async () => {
+    const toastId = toast.loading('Refreshing chains...');
+    try {
+      await refreshChains();
+      toast.update(toastId, {
+        type: 'success',
+        title: 'Chains refreshed',
+        description: `${chains.length} chains loaded successfully`,
+      });
+    } catch (err) {
+      toast.update(toastId, {
+        type: 'error',
+        title: 'Failed to refresh',
+        description: 'Could not load chain data. Please try again.',
+      });
+    }
+  }, [refreshChains, chains.length, toast]);
+
   // Get transaction store for demo execution
   const {
     startExecution: startDemoExecution,
@@ -876,15 +893,15 @@ export function BridgeForm() {
           <div className="flex items-center gap-1">
             <SettingsPanel onSettingsChange={refetchQuote} />
             <button
-              onClick={refreshChains}
+              onClick={handleRefreshChains}
               disabled={isLoading}
               className={cn(
                 'p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
-                isLoading && 'animate-spin'
+                'active:scale-95'
               )}
               title="Refresh chains"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
             </button>
           </div>
         </div>
