@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { X, TrendingUp, TrendingDown, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePearPositions, useClosePosition, usePearAuth, type Position } from '@/lib/pear';
-import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface PositionsSidebarProps {
@@ -133,11 +132,9 @@ function PositionCard({ position, onClose }: { position: Position; onClose: () =
 export function PositionsSidebar({ className }: PositionsSidebarProps) {
   const { isAuthenticated } = usePearAuth();
   const { data: positions, isLoading, error, refetch } = usePearPositions();
-  const bridgeMode = useBridgeMode();
-  const isSimulateMode = bridgeMode === 'simulate';
 
-  // In simulation mode, show empty positions state instead of auth prompt
-  if (!isAuthenticated && !isSimulateMode) {
+  // Require authentication to view positions
+  if (!isAuthenticated) {
     return (
       <div className={cn('bg-bg-surface rounded-card p-4', className)}>
         <h3 className="text-body font-semibold text-text-primary mb-4">Open Positions</h3>
@@ -149,11 +146,6 @@ export function PositionsSidebar({ className }: PositionsSidebarProps) {
         </div>
       </div>
     );
-  }
-
-  // In simulation mode without auth, don't show anything (no positions to display)
-  if (!isAuthenticated && isSimulateMode) {
-    return null;
   }
 
   // Don't show anything if no positions (hide empty state)

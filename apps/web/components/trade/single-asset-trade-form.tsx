@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useSingleAssetTrade, usePearAuth } from '@/lib/pear';
-import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface SingleAssetTradeFormProps {
@@ -20,8 +19,6 @@ const AVAILABLE_ASSETS = ['BTC', 'ETH', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'A
 export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { executeSingleTrade, isLoading: isTrading } = useSingleAssetTrade();
-  const bridgeMode = useBridgeMode();
-  const isSimulateMode = bridgeMode === 'simulate';
   const toast = useToast();
 
   // Form state
@@ -40,13 +37,6 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
   const handleTradeClick = () => {
     if (!usdValue || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
       toast.error('Invalid amount', 'Please enter a valid USD amount');
-      return;
-    }
-    if (isSimulateMode) {
-      toast.success(
-        'Simulation executed',
-        `${direction === 'long' ? 'Long' : 'Short'} ${asset} simulated with $${usdValue} at ${leverage}x leverage`
-      );
       return;
     }
     setShowConfirmDialog(true);
@@ -87,8 +77,8 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
     }
   }, [executeSingleTrade, asset, direction, usdValue, leverage, enableSL, enableTP, slPercent, tpPercent, toast]);
 
-  // In simulation mode, bypass authentication requirement
-  if (!isAuthenticated && !isSimulateMode) {
+  // Require authentication to trade
+  if (!isAuthenticated) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -273,11 +263,6 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Opening Position...
               </>
-            ) : isSimulateMode ? (
-              <>
-                {direction === 'long' ? <TrendingUp className="w-4 h-4 mr-2" /> : <TrendingDown className="w-4 h-4 mr-2" />}
-                Simulate {direction === 'long' ? 'Long' : 'Short'} {asset}
-              </>
             ) : direction === 'long' ? (
               <>
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -293,7 +278,6 @@ export function SingleAssetTradeForm({ className }: SingleAssetTradeFormProps) {
 
           {/* Info */}
           <p className="text-caption text-text-muted text-center">
-            {isSimulateMode && <span className="text-accent-primary">[Simulation] </span>}
             {direction === 'long' ? 'Long' : 'Short'} {asset} with {leverage}x leverage
             {enableSL && ` • SL: ${slPercent}%`}
             {enableTP && ` • TP: ${tpPercent}%`}

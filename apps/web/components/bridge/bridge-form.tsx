@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import { AlertCircle, ArrowDown, ArrowRight, RefreshCw, Info, Loader2, AlertTriangle, XCircle, TrendingUp, Play, ChevronDown, Sparkles, Zap, Coins } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowRight, RefreshCw, Info, Loader2, AlertTriangle, XCircle, ChevronDown, Sparkles, Zap, Coins } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useChainId } from 'wagmi';
-import { useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/react/shallow';
 import { ChainSelector } from './chain-selector';
 import { TokenSelector } from './token-selector';
@@ -13,7 +12,6 @@ import { BalanceWarning } from './balance-warning';
 import { AutoDepositToggle } from './auto-deposit-toggle';
 import { ExecutionModal } from './execution-modal';
 import { SettingsPanel } from './settings-panel';
-import { BridgeModeToggle } from './bridge-mode-toggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +19,6 @@ import { NetworkSwitchPrompt } from '@/components/wallet';
 import { useChains, useNetworkSwitchNeeded, useNetworkSwitch, useWalletBalance, useBridgeQuote, useBalanceValidation, useBridgeExecution, useTransactionHistory } from '@/lib/hooks';
 import { useBridgeStore } from '@/lib/stores/bridge-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
-import { useTransactionStore } from '@/lib/stores/transaction-store';
 import { useMina } from '@/app/providers';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
@@ -431,7 +428,6 @@ function AlternativeRoutesDisplay({
  * - Balance refresh after network switch
  */
 export function BridgeForm() {
-  const router = useRouter();
   const { open: openWalletModal } = useAppKit();
   const { isConnected } = useAppKitAccount();
   const walletChainId = useChainId();
@@ -463,9 +459,8 @@ export function BridgeForm() {
 
   // Issue 2 fix: Use useShallow for state to batch subscriptions
   // Actions are stable references and can be selected directly - no need for getState()
-  const { mode, sourceChain, sourceToken, amount, setSourceChain, setSourceToken, setAmount } = useBridgeStore(
+  const { sourceChain, sourceToken, amount, setSourceChain, setSourceToken, setAmount } = useBridgeStore(
     useShallow((state) => ({
-      mode: state.mode,
       sourceChain: state.sourceChain,
       sourceToken: state.sourceToken,
       amount: state.amount,
@@ -474,9 +469,6 @@ export function BridgeForm() {
       setAmount: state.setAmount,
     }))
   );
-
-  // Determine if we're in simulation mode
-  const isSimulateMode = mode === 'simulate';
 
   // Get Mina SDK for token fetching
   const { mina, isReady: isMinaReady } = useMina();
@@ -796,12 +788,6 @@ export function BridgeForm() {
     }
   }, [retry]);
 
-  // Handle demo trading - navigate to trade page in simulate mode
-  const handleDemoTrading = useCallback(() => {
-    console.log('[BridgeForm] Navigating to demo trading');
-    router.push('/trade');
-  }, [router]);
-
   // Handle refresh chains with toast feedback
   const handleRefreshChains = useCallback(async () => {
     const toastId = toast.loading('Refreshing chains...');
@@ -821,74 +807,6 @@ export function BridgeForm() {
     }
   }, [refreshChains, chains.length, toast]);
 
-  // Get transaction store for demo execution
-  const {
-    startExecution: startDemoExecution,
-    updateStep: updateDemoStep,
-    setCompleted: setDemoCompleted,
-  } = useTransactionStore();
-
-  // Handle demo bridge preview - shows execution modal with simulated progress
-  const handleDemoPreview = useCallback(async () => {
-    if (!sourceChain || !sourceToken || !amount || !quote) return;
-
-    console.log('[BridgeForm] Starting demo bridge preview');
-
-    const demoExecutionId = `demo_${Date.now()}`;
-    const demoSteps = [
-      { id: 'approval', type: 'approval' as const },
-      { id: 'swap', type: 'swap' as const },
-      { id: 'bridge', type: 'bridge' as const },
-      { id: 'deposit', type: 'deposit' as const },
-    ];
-
-    // Start demo execution
-    startDemoExecution({
-      executionId: demoExecutionId,
-      steps: demoSteps,
-      fromChainId: sourceChain.id,
-      toChainId: 999, // HyperEVM
-    });
-
-    // Simulate progress through each step
-    for (let i = 0; i < demoSteps.length; i++) {
-      const step = demoSteps[i]!;
-
-      // Mark step as active
-      await new Promise(resolve => setTimeout(resolve, 800));
-      updateDemoStep({
-        stepId: step.id,
-        step: step.type,
-        status: 'active',
-        txHash: null,
-        error: null,
-        timestamp: Date.now(),
-      });
-
-      // Mark step as completed
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      updateDemoStep({
-        stepId: step.id,
-        step: step.type,
-        status: 'completed',
-        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-        error: null,
-        timestamp: Date.now(),
-      });
-    }
-
-    // Mark as completed with demo data
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setDemoCompleted({
-      txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      receivingTxHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      receivedAmount: amount,
-      autoDepositCompleted: true,
-      depositTxHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      finalTradingBalance: amount,
-    });
-  }, [sourceChain, sourceToken, amount, quote, startDemoExecution, updateDemoStep, setDemoCompleted]);
-
   // Get tooltip message for disabled bridge button
   const getTooltipMessage = useCallback((): string => {
     if (!isConnected) return 'Connect your wallet to bridge';
@@ -907,16 +825,12 @@ export function BridgeForm() {
   // Determine if bridge button should be disabled
   const hasBalanceIssue = Boolean(quote && !isBalanceValid);
 
-  // In simulate mode, button is enabled when we have valid form data (chain, token, amount)
-  // In bridge mode, we need wallet connected and balance validation
-  const isSimulateButtonDisabled = !sourceChain || !sourceToken || isLoadingTokens || !amount;
-  const isBridgeButtonDisabled = !isConnected || !sourceChain || needsSwitch || !sourceToken || isLoadingTokens || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
-
-  const isBridgeDisabled = isSimulateMode ? isSimulateButtonDisabled : isBridgeButtonDisabled;
+  // Bridge button is disabled when wallet is not connected, network needs switch, or no valid quote
+  const isBridgeDisabled = !isConnected || !sourceChain || needsSwitch || !sourceToken || isLoadingTokens || !amount || isSwitchPending || hasBalanceIssue || isExecuting || !quote;
 
   return (
     <Card className="w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto">
-      <CardHeader className="space-y-4">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Bridge Assets</CardTitle>
           {/* Settings and Refresh buttons */}
@@ -935,13 +849,11 @@ export function BridgeForm() {
             </button>
           </div>
         </div>
-        {/* Bridge/Simulate Mode Toggle */}
-        <BridgeModeToggle />
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Network Switch Prompt - Only shown in Bridge mode (not Simulate) */}
-        {!isSimulateMode && showNetworkPrompt && (
+        {/* Network Switch Prompt */}
+        {showNetworkPrompt && (
           <NetworkSwitchPrompt
             targetChain={targetChain}
             onDismiss={handlePromptDismiss}
@@ -950,8 +862,8 @@ export function BridgeForm() {
           />
         )}
 
-        {/* Dismissed prompt warning - Only in Bridge mode */}
-        {!isSimulateMode && targetChain && isDismissed && (
+        {/* Dismissed prompt warning */}
+        {targetChain && isDismissed && (
           <div className="flex items-center gap-2 p-2 rounded-lg bg-bg-elevated border border-border-subtle">
             <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" />
             <span className="text-caption text-text-muted">
@@ -1004,7 +916,7 @@ export function BridgeForm() {
                   inputMode="decimal"
                   value={amount}
                   onChange={handleAmountChange}
-                  disabled={!sourceChain || (!isSimulateMode && needsSwitch) || !sourceToken}
+                  disabled={!sourceChain || needsSwitch || !sourceToken}
                   className="flex-1"
                   aria-label="Bridge amount"
                 />
@@ -1013,7 +925,7 @@ export function BridgeForm() {
                   onChange={handleTokenChange}
                   tokens={availableTokens}
                   isLoading={isLoadingTokens}
-                  disabled={!sourceChain || (!isSimulateMode && needsSwitch)}
+                  disabled={!sourceChain || needsSwitch}
                   placeholder="Token"
                 />
               </div>
@@ -1066,8 +978,8 @@ export function BridgeForm() {
         {/* QUOTE-003: Alternative Routes Display */}
         {quote && <AlternativeRoutesDisplay quote={quote} onSelectRoute={handleRoutePreferenceChange} />}
 
-        {/* Balance Warnings - Only shown in Bridge mode */}
-        {!isSimulateMode && quote && warnings.length > 0 && (
+        {/* Balance Warnings */}
+        {quote && warnings.length > 0 && (
           <BalanceWarning warnings={warnings} />
         )}
 
@@ -1082,7 +994,7 @@ export function BridgeForm() {
 
         {/* Bridge Button with Tooltip */}
         <BridgeButtonTooltip
-          show={Boolean(!isSimulateMode && isBridgeDisabled && isConnected && !isExecuting)}
+          show={Boolean(isBridgeDisabled && isConnected && !isExecuting)}
           message={getTooltipMessage()}
         >
           <Button
@@ -1092,7 +1004,7 @@ export function BridgeForm() {
             )}
             size="lg"
             disabled={isBridgeDisabled}
-            onClick={isSimulateMode ? () => openWalletModal() : handleBridge}
+            onClick={!isConnected ? () => openWalletModal() : handleBridge}
           >
             {/* Shimmer effect on ready state */}
             {quote && !hasBalanceIssue && !isQuoteLoading && !isExecuting && (
@@ -1100,22 +1012,7 @@ export function BridgeForm() {
             )}
 
             <span className="relative flex items-center justify-center gap-2">
-              {isSimulateMode
-                ? !sourceChain
-                  ? 'Select a Network'
-                  : !sourceToken
-                  ? 'Select a Token'
-                  : !amount
-                  ? 'Enter Amount'
-                  : isQuoteLoading
-                  ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Calculating Route...
-                    </>
-                  )
-                  : 'Connect Wallet to Bridge'
-                : !isConnected
+              {!isConnected
                 ? 'Connect Wallet'
                 : isExecuting
                 ? (
@@ -1158,79 +1055,20 @@ export function BridgeForm() {
           </Button>
         </BridgeButtonTooltip>
 
-        {/* Demo Options - Only in Simulate mode when quote is ready */}
-        {isSimulateMode && quote && (
-          <div className="relative overflow-hidden rounded-xl">
-            {/* Subtle gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/[0.08] via-transparent to-accent-muted/[0.05]" />
-            <div className="absolute inset-0 ring-1 ring-inset ring-accent-primary/20 rounded-xl" />
-
-            <div className="relative p-5 space-y-4">
-              {/* Header */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-accent-primary/15 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-accent-primary" />
-                </div>
-                <div>
-                  <span className="text-small font-semibold text-text-primary">Try Demo Mode</span>
-                  <p className="text-[11px] text-text-muted">No wallet or funds required</p>
-                </div>
-              </div>
-
-              {/* Demo Actions - Stacked with visual hierarchy */}
-              <div className="space-y-2.5">
-                {/* Primary Demo Action - Preview Bridge */}
-                <button
-                  onClick={handleDemoPreview}
-                  className="w-full group relative overflow-hidden rounded-xl p-3.5 bg-gradient-to-r from-accent-primary/15 via-accent-primary/10 to-transparent border border-accent-primary/30 hover:border-accent-primary/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(125,211,252,0.15)]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent-primary/20 flex items-center justify-center group-hover:bg-accent-primary/30 transition-colors">
-                      <Play className="w-5 h-5 text-accent-primary" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-small font-semibold text-text-primary block">Preview Bridge Flow</span>
-                      <span className="text-caption text-text-muted">See the complete bridging experience</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-accent-primary/60 group-hover:text-accent-primary group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </button>
-
-                {/* Secondary Demo Action - Demo Trading */}
-                <button
-                  onClick={handleDemoTrading}
-                  className="w-full group relative overflow-hidden rounded-xl p-3.5 bg-bg-elevated/60 border border-border-subtle hover:border-success/30 hover:bg-success/[0.05] transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-bg-surface flex items-center justify-center group-hover:bg-success/15 transition-colors">
-                      <TrendingUp className="w-5 h-5 text-text-muted group-hover:text-success transition-colors" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-small font-medium text-text-secondary group-hover:text-text-primary transition-colors block">Explore Trading</span>
-                      <span className="text-caption text-text-muted">Jump to Hyperliquid demo</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-text-muted/40 group-hover:text-success/60 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Info Text - Refined footer */}
-        {sourceChain && (isSimulateMode || (isConnected && !needsSwitch)) && (
+        {sourceChain && isConnected && !needsSwitch && (
           <div className="flex items-center justify-center gap-2 py-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
             <span className="text-caption text-text-muted px-3 flex items-center gap-1.5">
               <span className="w-1 h-1 rounded-full bg-accent-primary/60" />
-              {isSimulateMode ? 'Simulating' : 'Bridging'} from <span className="text-text-secondary font-medium">{sourceChain.name}</span> to <span className="text-success font-medium">HyperEVM</span>
+              Bridging from <span className="text-text-secondary font-medium">{sourceChain.name}</span> to <span className="text-success font-medium">HyperEVM</span>
             </span>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
           </div>
         )}
 
-        {/* Network mismatch warning when dismissed - Bridge mode only */}
-        {!isSimulateMode && isConnected && needsSwitch && isDismissed && (
+        {/* Network mismatch warning when dismissed */}
+        {isConnected && needsSwitch && isDismissed && (
           <div className="flex items-center justify-center gap-2 py-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-warning/30 to-transparent" />
             <span className="text-caption text-warning px-3 flex items-center gap-1.5">

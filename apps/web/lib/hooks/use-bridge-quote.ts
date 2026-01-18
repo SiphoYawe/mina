@@ -15,11 +15,6 @@ const DEBOUNCE_DELAY = 500;
 const STALE_TIME = 30_000; // 30 seconds
 const REFETCH_INTERVAL = 15_000; // 15 seconds
 
-// Placeholder address for simulation mode
-// Using a zero-padded address that's clearly a simulation placeholder
-// This avoids using real addresses and makes API logs clearly identifiable
-const SIMULATION_ADDRESS = '0x0000000000000000000000000000000000000001';
-
 interface UseBridgeQuoteOptions {
   /** Whether to enable auto-deposit to Hyperliquid (default: true) */
   autoDeposit?: boolean;
@@ -59,20 +54,13 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
   const { address, isConnected } = useAppKitAccount();
 
   // Get bridge params from store with shallow comparison for performance
-  const { mode, sourceChain, sourceToken, amount } = useBridgeStore(
+  const { sourceChain, sourceToken, amount } = useBridgeStore(
     useShallow((state) => ({
-      mode: state.mode,
       sourceChain: state.sourceChain,
       sourceToken: state.sourceToken,
       amount: state.amount,
     }))
   );
-
-  // Determine if we're in simulation mode
-  const isSimulateMode = mode === 'simulate';
-
-  // Use wallet address in bridge mode, or placeholder in simulate mode
-  const effectiveAddress = isSimulateMode ? SIMULATION_ADDRESS : address;
 
   // Get settings from settings store (including autoDeposit for SETTINGS-003 fix)
   const { slippage: settingsSlippage, routePreference, autoDeposit: settingsAutoDeposit } = useSettingsStore(
@@ -112,11 +100,12 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
   }, [amount]);
 
   // Determine if we have valid params for a quote
-  // In simulate mode, we don't need isConnected or a real address
+  // Requires wallet connection for real execution
   const canFetchQuote = Boolean(
     isReady &&
     mina &&
-    (isSimulateMode || (isConnected && address)) &&
+    isConnected &&
+    address &&
     sourceChain?.id &&
     sourceToken?.address &&
     debouncedAmount &&
@@ -129,11 +118,10 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
     sourceChain?.id,
     sourceToken?.address,
     debouncedAmount,
-    effectiveAddress,
+    address,
     autoDeposit,
     slippage,
     routePreference,
-    isSimulateMode ? 'simulate' : 'bridge',
   ];
 
   // Parse amount to smallest unit (wei)
@@ -159,7 +147,7 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
   } = useQuery<Quote | null, Error>({
     queryKey,
     queryFn: async (): Promise<Quote | null> => {
-      if (!mina || !sourceChain || !sourceToken || !effectiveAddress || !debouncedAmount) {
+      if (!mina || !sourceChain || !sourceToken || !address || !debouncedAmount) {
         return null;
       }
 
@@ -178,7 +166,7 @@ export function useBridgeQuote(options: UseBridgeQuoteOptions = {}): UseBridgeQu
         fromToken: sourceToken.address,
         toToken: HYPEREVM_USDC_ADDRESS,
         fromAmount: fromAmountWei,
-        fromAddress: effectiveAddress,
+        fromAddress: address,
         slippageTolerance: slippage,
         routePreference,
       };
