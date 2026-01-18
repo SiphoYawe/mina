@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useBasketTrade, usePearAuth } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface BasketTradeFormProps {
@@ -24,6 +25,8 @@ const AVAILABLE_ASSETS = ['BTC', 'ETH', 'SOL', 'DOGE', 'AVAX', 'LINK', 'UNI', 'A
 export function BasketTradeForm({ className }: BasketTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { executeBasketTrade, isLoading: isTrading } = useBasketTrade();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
   const toast = useToast();
 
   // Form state
@@ -88,6 +91,15 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
       toast.error('Invalid amount', 'Please enter a valid USD amount');
       return;
     }
+    if (isSimulateMode) {
+      const longStr = longAssets.map(a => a.asset).join(', ');
+      const shortStr = shortAssets.map(a => a.asset).join(', ');
+      toast.success(
+        'Simulation executed',
+        `Basket trade simulated: Long [${longStr}] / Short [${shortStr}] with $${usdValue} at ${leverage}x`
+      );
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
@@ -123,8 +135,8 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
     }
   }, [executeBasketTrade, longAssets, shortAssets, usdValue, leverage, toast]);
 
-  // Require authentication to trade
-  if (!isAuthenticated) {
+  // In simulation mode, bypass authentication requirement
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -263,6 +275,11 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Executing Basket Trade...
               </>
+            ) : isSimulateMode ? (
+              <>
+                <Package className="w-4 h-4 mr-2" />
+                Simulate Basket Position
+              </>
             ) : (
               <>
                 <Package className="w-4 h-4 mr-2" />
@@ -273,6 +290,7 @@ export function BasketTradeForm({ className }: BasketTradeFormProps) {
 
           {/* Summary - MOBILE-001 Fix: Better text wrapping on mobile */}
           <div className="text-caption text-text-muted text-center space-y-1 px-1">
+            {isSimulateMode && <p className="text-accent-primary">[Simulation]</p>}
             <p className="break-words">
               Long: {longAssets.map(a => `${a.asset} (${(a.weight * 100).toFixed(0)}%)`).join(', ')}
             </p>

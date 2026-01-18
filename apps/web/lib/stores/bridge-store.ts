@@ -5,12 +5,19 @@ import { devtools, persist } from 'zustand/middleware';
 import type { Chain, Token } from '@siphoyawe/mina-sdk';
 
 /**
+ * Bridge mode type - "bridge" requires wallet, "simulate" works without
+ */
+export type BridgeMode = 'bridge' | 'simulate';
+
+/**
  * Bridge store state and actions
  *
  * Issue 6 fix: Only persist sourceChainId (number) instead of full Chain object
  * to prevent hydration mismatches. Chain object is rehydrated by finding chain by ID.
  */
 interface BridgeState {
+  // Bridge/Simulate mode toggle
+  mode: BridgeMode;
   // Source chain selection
   sourceChain: Chain | null;
   // Issue 6: Persisted chain ID for rehydration
@@ -30,6 +37,8 @@ interface BridgeState {
 }
 
 interface BridgeActions {
+  // Mode toggle
+  setMode: (mode: BridgeMode) => void;
   // Chain selection
   setSourceChain: (chain: Chain | null) => void;
   // Issue 6: Rehydrate sourceChain from persisted chain ID
@@ -53,6 +62,7 @@ interface BridgeActions {
 }
 
 const initialState: BridgeState = {
+  mode: 'simulate', // Default to simulate mode (accessible without wallet)
   sourceChain: null,
   _sourceChainId: null,
   sourceToken: null,
@@ -69,6 +79,9 @@ export const useBridgeStore = create<BridgeState & BridgeActions>()(
     persist(
       (set) => ({
         ...initialState,
+
+        setMode: (mode) =>
+          set({ mode }, false, 'setMode'),
 
         setSourceChain: (chain) =>
           set(
@@ -141,6 +154,8 @@ export const useBridgeStore = create<BridgeState & BridgeActions>()(
           // This prevents hydration mismatches between server and client
           _sourceChainId: state._sourceChainId,
           amount: state.amount,
+          // Persist mode preference for better UX across page refreshes
+          mode: state.mode,
         }),
       }
     ),
@@ -149,6 +164,7 @@ export const useBridgeStore = create<BridgeState & BridgeActions>()(
 );
 
 // Selector hooks for optimized re-renders
+export const useBridgeMode = () => useBridgeStore((state) => state.mode);
 export const useSourceChain = () => useBridgeStore((state) => state.sourceChain);
 export const useSourceToken = () => useBridgeStore((state) => state.sourceToken);
 export const useBridgeAmount = () => useBridgeStore((state) => state.amount);

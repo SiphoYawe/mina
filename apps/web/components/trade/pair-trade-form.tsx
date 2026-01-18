@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useToast } from '@/components/ui/toast';
 import { usePearMarkets, usePairTrade, usePearAuth } from '@/lib/pear';
+import { useBridgeMode } from '@/lib/stores/bridge-store';
 import { cn } from '@/lib/utils';
 
 interface PairTradeFormProps {
@@ -18,6 +19,8 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
   const { isAuthenticated, authenticate, isAuthenticating } = usePearAuth();
   const { data: marketsData, isLoading: marketsLoading } = usePearMarkets({ pageSize: 20 });
   const { executePairTrade, isLoading: isTrading } = usePairTrade();
+  const bridgeMode = useBridgeMode();
+  const isSimulateMode = bridgeMode === 'simulate';
   const toast = useToast();
 
   // Form state
@@ -38,6 +41,14 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
   const handleTradeClick = () => {
     if (!usdValue || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
       toast.error('Invalid amount', 'Please enter a valid USD amount');
+      return;
+    }
+    if (isSimulateMode) {
+      // In simulation mode, show success toast immediately
+      toast.success(
+        'Simulation executed',
+        `${longAsset}/${shortAsset} pair trade simulated with $${usdValue} at ${leverage}x leverage`
+      );
       return;
     }
     setShowConfirmDialog(true);
@@ -73,8 +84,8 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
     }
   }, [executePairTrade, longAsset, shortAsset, usdValue, leverage, toast]);
 
-  // Require authentication to trade
-  if (!isAuthenticated) {
+  // In simulation mode, bypass authentication requirement
+  if (!isAuthenticated && !isSimulateMode) {
     return (
       <Card className={cn('', className)}>
         <CardContent className="py-12 text-center">
@@ -241,6 +252,11 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Executing Trade...
               </>
+            ) : isSimulateMode ? (
+              <>
+                <ArrowLeftRight className="w-4 h-4 mr-2" />
+                Simulate {longAsset}/{shortAsset} Position
+              </>
             ) : (
               <>
                 <ArrowLeftRight className="w-4 h-4 mr-2" />
@@ -251,6 +267,7 @@ export function PairTradeForm({ className }: PairTradeFormProps) {
 
           {/* Info */}
           <p className="text-caption text-text-muted text-center">
+            {isSimulateMode && <span className="text-accent-primary">[Simulation] </span>}
             Going long {longAsset} / short {shortAsset} with {leverage}x leverage
           </p>
         </div>
